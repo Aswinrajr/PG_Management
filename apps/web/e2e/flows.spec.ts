@@ -106,9 +106,12 @@ test('admin: console pages load and a new owner is approved', async ({ page, bro
   const owner = await context.newPage();
   const phone = `8${String(Date.now()).slice(-9)}`;
   const orgName = `Approval PG ${phone.slice(-5)}`;
-  await login(owner, phone);
+  await owner.goto('/login');
+  await owner.getByRole('link', { name: 'Register your PG' }).click();
+  await owner.getByLabel('Mobile number').fill(phone);
+  await owner.getByRole('button', { name: 'Get OTP' }).click();
   await owner.getByRole('checkbox').check();
-  await owner.getByRole('button', { name: 'Verify' }).click();
+  await owner.getByLabel('6-digit code').fill('123456');
   await expect(owner).toHaveURL(/onboarding/);
   await owner.getByLabel('Business name').fill(orgName);
   await owner.getByLabel('City').fill('Bengaluru');

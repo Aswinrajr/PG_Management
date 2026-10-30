@@ -134,6 +134,7 @@ const Onboarding = owner.onboarding;
 export const router = createBrowserRouter([
   { path: '/', element: <Root /> },
   { path: '/login', element: <LoginPage /> },
+  { path: '/register', element: <LoginPage key="register" register /> },
   { path: '/admin/login', element: <AdminLoginPage /> },
   { path: '/select-workspace', element: <SelectWorkspacePage /> },
   { path: '/invite/:code', element: <InvitePage /> },

@@ -1,7 +1,7 @@
 import { Building2, CreditCard, ShieldCheck } from 'lucide-react';
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Navigate, useNavigate, useParams } from 'react-router';
+import { Link, Navigate, useNavigate, useParams } from 'react-router';
 import { Button, Card, Field, FormError, Input } from '../../components/ui';
 import { api } from '../../lib/api';
 import { homeOf, useAuth, type Membership } from '../../lib/auth';
@@ -31,7 +31,7 @@ function BrandPanel() {
   );
 }
 
-export function LoginPage() {
+export function LoginPage({ register = false }: { register?: boolean }) {
   const { t } = useTranslation();
   const { me, workspace, signIn, setWorkspace } = useAuth();
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ export function LoginPage() {
   const [code, setCode] = useState('');
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [consent, setConsent] = useState(false);
-  const [needsConsent, setNeedsConsent] = useState(false);
+  const [needsConsent, setNeedsConsent] = useState(register);
   const [wait, setWait] = useState(0);
   const [error, setError] = useState<Error | null>(null);
   const [busy, setBusy] = useState(false);
@@ -100,8 +100,8 @@ export function LoginPage() {
         <div className="w-full max-w-sm space-y-4">
           <img src="/roomora-logo.svg" alt="Roomora" className="mx-auto w-44 lg:hidden" />
           <div>
-            <h2 className="text-2xl font-bold">{step === 'phone' ? t('Log in') : t('Enter OTP')}</h2>
-            <p className="text-text-muted">{step === 'phone' ? t('We will send a 6-digit code to your phone.') : t('Sent to +91 {{phone}}', { phone })}</p>
+            <h2 className="text-2xl font-bold">{step !== 'phone' ? t('Enter OTP') : register ? t('Register your PG') : t('Log in')}</h2>
+            <p className="text-text-muted">{step === 'phone' ? (register ? t('Start with your mobile number. Next you add your business details and documents for approval.') : t('We will send a 6-digit code to your phone.')) : t('Sent to +91 {{phone}}', { phone })}</p>
           </div>
           {step === 'phone' ? (
             <form onSubmit={send} className="space-y-3">
@@ -151,6 +151,11 @@ export function LoginPage() {
               </div>
             </form>
           )}
+          <p className="text-center text-sm text-text-muted">
+            {register ? t('Already registered?') : t('New PG owner?')}{' '}
+            <Link to={register ? '/login' : '/register'} className="inline-flex min-h-11 items-center font-medium text-primary">{register ? t('Log in') : t('Register your PG')}</Link>
+          </p>
+          {!register && <p className="text-center text-xs text-text-muted">{t('Residents: your PG adds you first, then log in with that number.')}</p>}
         </div>
       </main>
     </div>
