@@ -33,11 +33,12 @@ function Notifications() {
   const { t } = useTranslation();
   const client = useQueryClient();
   const [open, setOpen] = useState(false);
-  const [toast, setToast] = useState<{ title: string; body: string } | null>(null);
+  const [toast, setToast] = useState<{ title: string; body: string; link?: string } | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const socket = getSocket();
-    const onNotification = (n: { title: string; body: string }) => {
+    const onNotification = (n: { title: string; body: string; link?: string }) => {
       setToast(n);
       void client.invalidateQueries();
     };
@@ -51,7 +52,7 @@ function Notifications() {
     return () => clearTimeout(timer);
   }, [toast]);
 
-  const query = useGet<{ unread: number; items: { _id: string; title: string; body: string; createdAt: string }[] }>('/auth/notifications');
+  const query = useGet<{ unread: number; items: { _id: string; title: string; body: string; link?: string; createdAt: string }[] }>('/auth/notifications');
   const markRead = useSend('post', '/auth/notifications/read');
   const unread = query.data?.unread ?? 0;
   return (
@@ -72,6 +73,7 @@ function Notifications() {
         <div role="status" className="fixed inset-x-4 top-16 z-50 mx-auto max-w-sm rounded-lg border border-border bg-surface p-3 shadow-overlay">
           <p className="font-semibold">{toast.title}</p>
           <p className="text-sm text-text-muted">{toast.body}</p>
+          {toast.link && <Button variant="secondary" className="mt-2" onClick={() => { navigate(toast.link!); setToast(null); }}>{t('View')}</Button>}
         </div>
       )}
       <Sheet open={open} onClose={() => setOpen(false)} title={t('Notifications')}>
@@ -79,9 +81,19 @@ function Notifications() {
           <ul className="space-y-3">
             {query.data.items.map((n) => (
               <li key={n._id} className="border-b border-border pb-3">
-                <p className="font-medium">{n.title}</p>
-                <p className="text-text-muted">{n.body}</p>
-                <p className="text-xs text-text-muted">{formatDate(n.createdAt)}</p>
+                <button
+                  type="button"
+                  disabled={!n.link}
+                  className="block w-full text-left"
+                  onClick={() => {
+                    setOpen(false);
+                    navigate(n.link!);
+                  }}
+                >
+                  <span className="block font-medium">{n.title}</span>
+                  <span className="block text-text-muted">{n.body}</span>
+                  <span className="block text-xs text-text-muted">{formatDate(n.createdAt)}</span>
+                </button>
               </li>
             ))}
           </ul>

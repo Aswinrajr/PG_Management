@@ -175,8 +175,11 @@ test('admin: console pages load and a new owner is approved', async ({ page, bro
   for (const [path, shot] of [['/admin', 'admin'], ['/admin/organizations', 'admin-orgs'], ['/admin/kyc', 'admin-kyc'], ['/admin/plans', 'admin-plans'], ['/admin/broadcasts', 'admin-broadcasts'], ['/admin/audit', 'admin-audit']] as const) {
     await visit(page, path, shot, info.project.name);
   }
-  await page.goto('/admin/kyc');
-  await page.getByRole('button', { name: orgName }).click();
+  // The admin is told, and the notification opens this owner's review.
+  await page.goto('/admin');
+  await page.getByRole('button', { name: /^Notifications/ }).click();
+  await page.getByRole('button', { name: new RegExp(`New PG waiting for approval.*${orgName}`) }).click();
+  await expect(page).toHaveURL(/\/admin\/kyc\?org=/);
   await expect(page.getByRole('link', { name: 'View on map' })).toBeVisible();
   await expect(page.getByText('Test Owner')).toBeVisible();
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/${info.project.name}-admin-review.png`, fullPage: true });
@@ -194,8 +197,10 @@ test('admin: console pages load and a new owner is approved', async ({ page, bro
   await owner.getByRole('button', { name: 'Send again for approval' }).click();
   await expect(owner.getByRole('heading', { name: 'Waiting for approval' })).toBeVisible();
 
-  await page.reload();
-  await page.getByRole('button', { name: orgName }).click();
+  // The admin is already online, so this arrives live.
+  await expect(page.getByRole('status').getByText('PG sent again for approval')).toBeVisible();
+  await page.getByRole('status').getByRole('button', { name: 'View' }).click();
+  await expect(page.getByText('ID photo is blurry')).toBeVisible();
   await page.getByRole('button', { name: 'Approve' }).click();
   await expect(page.getByRole('button', { name: orgName })).toHaveCount(0);
 
@@ -204,6 +209,7 @@ test('admin: console pages load and a new owner is approved', async ({ page, bro
   await context.close();
 
   await page.goto('/admin/organizations');
+  await page.getByLabel('Search').fill('Sunrise'); // test owners can fill the first page
   await page.getByText('Sunrise PG').locator('visible=true').first().click();
   await expect(page.getByRole('heading', { name: 'Sunrise PG' })).toBeVisible();
   expect(problems).toEqual([]);

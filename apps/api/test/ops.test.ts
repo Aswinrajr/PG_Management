@@ -285,7 +285,10 @@ describe('super admin', () => {
     const admin = await superAdmin();
     const a = await pendingOwner();
     await admin.post(`/admin/orgs/${a.orgId}/status`).send({ status: 'active', reason: 'skip review' }).expect(409);
+    const adminInbox = async () => (await admin.get('/auth/notifications').expect(200)).body.data.items as { title: string; link: string }[];
+    expect(await adminInbox()).toHaveLength(0);
     await api(a.token).put(`/org/${a.orgId}/kyc`).send({ docs: [{ type: 'owner_photo', key: 'p' }, { type: 'owner_id', key: 'k' }, { type: 'property_proof', key: 'q' }] }).expect(200);
+    expect((await adminInbox())[0]).toMatchObject({ title: 'New PG waiting for approval', link: `/admin/kyc?org=${a.orgId}` });
     await admin.post(`/admin/orgs/${a.orgId}/kyc`).send({ decision: 'reject' }).expect(400);
     await admin.post(`/admin/orgs/${a.orgId}/kyc`).send({ decision: 'reject', reason: 'Blurry photo' }).expect(200);
     const sentBack = (await Organization.findById(a.orgId).lean())!;
@@ -293,6 +296,7 @@ describe('super admin', () => {
     expect(sentBack.kyc!.rejectionReason).toBe('Blurry photo');
     expect(await Notification.countDocuments({ userId: a.userId, title: 'Your details need changes', body: 'Blurry photo' })).toBe(1);
     await api(a.token).put(`/org/${a.orgId}/kyc`).send({ docs: [{ type: 'owner_photo', key: 'p' }, { type: 'owner_id', key: 'k' }, { type: 'property_proof', key: 'q' }] }).expect(200);
+    expect((await adminInbox())[0]!.title).toBe('PG sent again for approval');
     await admin.post(`/admin/orgs/${a.orgId}/kyc`).send({ decision: 'approve' }).expect(200);
     const org = (await Organization.findById(a.orgId).lean())!;
     expect(org.status).toBe('trial');

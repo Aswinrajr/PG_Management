@@ -2,6 +2,7 @@ import { model, Schema, Types } from 'mongoose';
 import { describe, expect, it } from 'vitest';
 import { assertPropertyAccess, propertyScope } from '../src/middleware/auth.js';
 import { tenantPlugin } from '../src/lib/tenant-plugin.js';
+import { Notification } from '../src/modules/ops/model.js';
 import { Membership, Organization } from '../src/modules/orgs/model.js';
 import { assertPlanLimit } from '../src/modules/orgs/plans.js';
 import { api, login, ownerWithOrg, pendingOwner, useTestDb } from './helpers.js';
@@ -79,6 +80,7 @@ describe('org access', () => {
     const a = await pendingOwner();
     const client = api(a.token);
     await client.put(`/org/${a.orgId}/kyc`).send({ docs: [{ type: 'owner_id', key: 'k' }], submit: false }).expect(200);
+    expect(await Notification.countDocuments({ title: 'New PG waiting for approval' })).toBe(0); // a draft tells nobody
     const draft = (await client.get(`/org/${a.orgId}`).expect(200)).body.data.kyc;
     expect(draft).toMatchObject({ status: 'not_submitted', docs: [{ type: 'owner_id', key: 'k' }] });
     const res = await client.put(`/org/${a.orgId}/kyc`).send({ docs: [{ type: 'owner_id', key: 'k' }] }).expect(400);

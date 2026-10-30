@@ -3,6 +3,7 @@ import { Router } from 'express';
 import { encrypt } from '../../lib/crypto.js';
 import { requireAuth, requirePermission, resolveTenant } from '../../middleware/auth.js';
 import { validate } from '../../middleware/core.js';
+import { notifyAdmins } from '../ops/service.js';
 import { Bed, Property } from '../properties/model.js';
 import { Stay } from '../stays/model.js';
 import { Organization } from './model.js';
@@ -29,7 +30,14 @@ tenantRouter.patch('/', requirePermission('org.update'), validate({ body: Update
 });
 
 tenantRouter.put('/kyc', requirePermission('org.update'), validate({ body: SubmitKycBody }), async (req, res) => {
-  res.json({ success: true, data: await submitKyc(req.tenant!.orgId, req.valid.body) });
+  const { orgId } = req.tenant!;
+  const kyc = await submitKyc(orgId, req.valid.body);
+  if (req.valid.body.submit) {
+    const org = await Organization.findById(orgId, { name: 1, city: 1 }).lean();
+    const again = kyc!.history.filter((h) => h.action === 'submitted').length > 1;
+    await notifyAdmins(orgId, again ? 'PG sent again for approval' : 'New PG waiting for approval', `${org!.name}, ${org!.city}`, `/admin/kyc?org=${orgId}`);
+  }
+  res.json({ success: true, data: kyc });
 });
 
 tenantRouter.put('/razorpay', requirePermission('org.billing'), validate({ body: ConnectRazorpayBody }), async (req, res) => {

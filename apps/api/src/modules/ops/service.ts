@@ -12,6 +12,7 @@ import { assertPropertyAccess, propertyScope } from '../../middleware/auth.js';
 import { Invoice, Payment } from '../billing/model.js';
 import { createInvoice } from '../billing/service.js';
 import { Organization } from '../orgs/model.js';
+import { User } from '../users/model.js';
 import { Bed, Room } from '../properties/model.js';
 import { Stay } from '../stays/model.js';
 import { ElectricityReading, Expense, Menu, Notice, Notification, Ticket } from './model.js';
@@ -24,6 +25,12 @@ export async function notify(userId: unknown, orgId: unknown, title: string, bod
   emitToUser(userId, 'notification', { title, body, link });
   void sendPush(userId, { title, body, link }).catch((err) => logger.warn({ err }, 'push failed'));
   return notification;
+}
+
+/** Tells every active Super Admin. */
+export async function notifyAdmins(orgId: unknown, title: string, body: string, link: string) {
+  const admins = await User.find({ isSuperAdmin: true, status: 'active' }, { _id: 1 }).lean();
+  await Promise.all(admins.map((admin) => notify(admin._id, orgId, title, body, link)));
 }
 
 export async function createTicket(

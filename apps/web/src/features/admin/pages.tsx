@@ -1,7 +1,7 @@
 import { Building2, BedDouble, CircleDollarSign, FileCheck2, IndianRupee, Percent } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, useParams } from 'react-router';
+import { useNavigate, useParams, useSearchParams } from 'react-router';
 import { Button, Card, CardTitle, DataList, EmptyState, Field, FileThumb, FormError, Input, Money, PageHeader, Pagination, Query, Select, Sheet, StatCard, StatusBadge, Textarea } from '../../components/ui';
 import { api, useGet, useGetPage, useSend } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -238,23 +238,26 @@ function KycReview({ org, onDone }: { org: any; onDone: () => void }) {
 export function KycQueuePage() {
   const { t } = useTranslation();
   const query = useGetPage<any>('/admin/orgs?kyc=pending_review&limit=100');
-  const [selected, setSelected] = useState<any>(null);
+  const [params, setParams] = useSearchParams();
+  const [picked, setPicked] = useState<any>(null);
   return (
     <>
       <PageHeader title={t('KYC queue')} />
       <Query query={query}>
-        {({ items }) =>
-          items.length === 0 ? <EmptyState title={t('Queue is clear')} /> : (
+        {({ items }) => {
+          // Opened from a notification, the link names the owner to show.
+          const selected = picked ?? items.find((org) => org._id === params.get('org'));
+          return items.length === 0 ? <EmptyState title={t('Queue is clear')} /> : (
             <div className="grid gap-4 md:grid-cols-[280px_1fr]">
               <ul className="space-y-2">
-                {items.map((org) => <li key={org._id}><button type="button" onClick={() => setSelected(org)} className={`min-h-11 w-full rounded-md border p-3 text-left ${selected?._id === org._id ? 'border-primary bg-primary-soft' : 'border-border bg-surface'}`}>{org.name}</button></li>)}
+                {items.map((org) => <li key={org._id}><button type="button" onClick={() => setPicked(org)} className={`min-h-11 w-full rounded-md border p-3 text-left ${selected?._id === org._id ? 'border-primary bg-primary-soft' : 'border-border bg-surface'}`}>{org.name}</button></li>)}
               </ul>
               {selected ? (
-                <KycReview key={selected._id} org={selected} onDone={() => setSelected(null)} />
+                <KycReview key={selected._id} org={selected} onDone={() => { setPicked(null); setParams({}); }} />
               ) : <EmptyState title={t('Choose an organization')} />}
             </div>
-          )
-        }
+          );
+        }}
       </Query>
     </>
   );

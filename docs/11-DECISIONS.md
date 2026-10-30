@@ -60,6 +60,8 @@ Resolves conflicts and gaps found while reviewing docs 00–10. Where this doc d
 
 | D39 | Signup and review | Three steps: PG, owner details (photo, name, mobile, email, ID), PG documents. Every step saves to the server, so Back and refresh keep the data. Admin either approves or sends back with comments; the owner reopens the same filled-in form. All steps and comments are kept in `kyc.history`. |
 
+| D40 | Admin alerts | Submitting (not saving a draft) notifies every Super Admin by bell, live pop-up and push. The notification links to that owner's review in the KYC queue. |
+
 ## Build order changes to doc 07
 
 - Plans model and seed: moved from 2.8–2.9 to 1.3.
