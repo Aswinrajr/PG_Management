@@ -1,1 +1,5 @@
-{ "extends": "../../packages/config/tsconfig.base.json", "include": ["src", "test"] }
+{
+  "extends": "../../packages/config/tsconfig.base.json",
+  "compilerOptions": { "declaration": false },
+  "include": ["src", "test"]
+}
