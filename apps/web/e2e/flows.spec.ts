@@ -76,6 +76,19 @@ test('owner: every page loads, then book, verify and take payment', async ({ pag
   await page.getByRole('button', { name: 'Save' }).click();
   await expect(page.getByText('Payment saved')).toBeVisible();
   await expect(page.getByText(/RCP-\d{4}-/)).toBeVisible();
+  await page.getByRole('button', { name: 'Close' }).click();
+
+  // Check out too, so the bed is free for the next run.
+  await page.getByRole('button', { name: 'Give notice' }).click();
+  await page.getByRole('dialog').getByRole('button', { name: 'Give notice' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await page.getByRole('button', { name: 'Check out' }).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByLabel('Keys returned').check();
+  await sheet.getByLabel('Room inspected').check();
+  await sheet.getByRole('button', { name: 'Calculate settlement' }).click();
+  await sheet.getByRole('button', { name: 'Confirm check-out' }).click();
+  await expect(page.getByText('Checked out').first()).toBeVisible();
   expect(problems).toEqual([]);
 });
 
