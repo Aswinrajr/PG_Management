@@ -27,6 +27,7 @@ Full specs live in `/docs`. Before starting any task, open the doc(s) it referen
 | `docs/08-MOBILE-PLAN.md` | Mobile app (phase 2) |
 | `docs/09-3D-PLANNER.md` | 3D building/room planner (phase 3) |
 | `docs/10-TESTING-DEPLOY.md` | Tests, CI, deployment, security checklist |
+| `docs/11-DECISIONS.md` | Resolved conflicts and gaps. **Wins over every other doc** |
 
 ## Stack (do not swap without asking)
 

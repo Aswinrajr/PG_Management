@@ -1,0 +1,25 @@
+export const ORG_TYPES = ['boys', 'girls', 'coliving', 'mixed'] as const;
+export const ORG_STATUSES = ['trial', 'active', 'read_only', 'suspended', 'cancelled'] as const;
+export const KYC_STATUSES = ['not_submitted', 'pending_review', 'approved', 'rejected'] as const;
+export const ROLES = ['owner', 'manager', 'staff', 'resident'] as const;
+export const MEMBERSHIP_STATUSES = ['invited', 'active', 'removed'] as const;
+export const BED_STATUSES = ['vacant', 'reserved', 'occupied', 'notice', 'maintenance'] as const;
+export const STAY_STATUSES = ['booked', 'active', 'notice', 'checked_out', 'cancelled'] as const;
+export const INVOICE_STATUSES = ['draft', 'due', 'partially_paid', 'paid', 'overdue', 'void'] as const;
+export const INVOICE_TYPES = ['monthly', 'deposit', 'one_off', 'settlement'] as const;
+export const PAYMENT_MODES = ['cash', 'upi', 'bank', 'card', 'razorpay'] as const;
+export const TICKET_STATUSES = ['open', 'in_progress', 'resolved', 'closed', 'rejected'] as const;
+export const TICKET_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const;
+export const TICKET_CATEGORIES = ['electrical', 'plumbing', 'cleaning', 'food', 'wifi', 'furniture', 'other'] as const;
+export const ID_TYPES = ['aadhaar', 'pan', 'passport', 'dl', 'voter'] as const;
+export const RESIDENT_KYC_STATUSES = ['pending', 'submitted', 'verified', 'rejected'] as const;
+export const EXPENSE_CATEGORIES = ['groceries', 'salaries', 'electricity', 'water', 'internet', 'repairs', 'landlord_rent', 'other'] as const;
+
+export type Role = (typeof ROLES)[number];
+export type OrgStatus = (typeof ORG_STATUSES)[number];
+export type BedStatus = (typeof BED_STATUSES)[number];
+export type StayStatus = (typeof STAY_STATUSES)[number];
+export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
+export type InvoiceType = (typeof INVOICE_TYPES)[number];
+export type PaymentMode = (typeof PAYMENT_MODES)[number];
+export type TicketStatus = (typeof TICKET_STATUSES)[number];
