@@ -41,7 +41,7 @@ test('owner: every page loads, then book, verify and take payment', async ({ pag
     ['/app/dashboard', 'dashboard'], ['/app/bedmap', 'bedmap'], ['/app/properties', 'properties'], ['/app/residents', 'residents'],
     ['/app/billing/dues', 'dues'], ['/app/billing/invoices', 'invoices'], ['/app/billing/payments', 'payments'], ['/app/billing/electricity', 'electricity'],
     ['/app/expenses', 'expenses'], ['/app/complaints', 'complaints'], ['/app/notices', 'notices'], ['/app/food-menu', 'menu'],
-    ['/app/reports', 'reports'], ['/app/staff', 'staff'], ['/app/settings', 'settings'],
+    ['/app/reports', 'reports'], ['/app/settings', 'settings'],
   ];
   for (const [path, shot] of pages) await visit(page, path, shot, info.project.name);
 
@@ -96,13 +96,55 @@ test('resident: home, payments, raise a request, profile', async ({ page }, info
   expect(problems).toEqual([]);
 });
 
-test('admin: console pages load and KYC can be approved', async ({ page }, info) => {
+const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64');
+const upload = (page: Page, label: string) => page.getByLabel(label).setInputFiles({ name: 'id.png', mimeType: 'image/png', buffer: PNG });
+
+test('admin: console pages load and a new owner is approved', async ({ page, browser }, info) => {
   const problems = watchProblems(page);
+
+  const context = await browser.newContext();
+  const owner = await context.newPage();
+  const phone = `8${String(Date.now()).slice(-9)}`;
+  const orgName = `Approval PG ${phone.slice(-5)}`;
+  await login(owner, phone);
+  await owner.getByRole('checkbox').check();
+  await owner.getByRole('button', { name: 'Verify' }).click();
+  await expect(owner).toHaveURL(/onboarding/);
+  await owner.getByLabel('Business name').fill(orgName);
+  await owner.getByLabel('City').fill('Bengaluru');
+  await owner.getByLabel('State').fill('Karnataka');
+  await owner.getByRole('button', { name: 'Next' }).click();
+  await owner.getByLabel('Property name').fill('First House');
+  await owner.getByLabel('Address').fill('1 MG Road');
+  await owner.getByLabel('City').fill('Bengaluru');
+  await owner.getByLabel('State').fill('Karnataka');
+  await owner.getByLabel('Pincode').fill('560001');
+  await owner.getByRole('button', { name: 'Save' }).click();
+  await upload(owner, 'Owner ID proof');
+  await expect(owner.getByText('Uploaded')).toHaveCount(1);
+  await upload(owner, 'Property proof');
+  await expect(owner.getByText('Uploaded')).toHaveCount(2);
+  await owner.getByRole('button', { name: 'Submit' }).click();
+  await owner.getByRole('link', { name: 'Continue' }).click();
+  await expect(owner.getByRole('heading', { name: 'Waiting for approval' })).toBeVisible();
+  await owner.goto('/app/residents');
+  await expect(owner.getByRole('heading', { name: 'Waiting for approval' })).toBeVisible();
+
   await login(page, '9000000001');
   await expect(page).toHaveURL(/\/admin/);
   for (const [path, shot] of [['/admin', 'admin'], ['/admin/organizations', 'admin-orgs'], ['/admin/kyc', 'admin-kyc'], ['/admin/plans', 'admin-plans'], ['/admin/broadcasts', 'admin-broadcasts'], ['/admin/audit', 'admin-audit']] as const) {
     await visit(page, path, shot, info.project.name);
   }
+  await page.goto('/admin/kyc');
+  await page.getByRole('button', { name: orgName }).click();
+  await expect(page.getByText('First House')).toBeVisible();
+  await page.getByRole('button', { name: 'Approve' }).click();
+  await expect(page.getByRole('button', { name: orgName })).toHaveCount(0);
+
+  await owner.getByRole('button', { name: 'Check status' }).click();
+  await expect(owner.getByRole('heading', { name: 'Residents', exact: true })).toBeVisible();
+  await context.close();
+
   await page.goto('/admin/organizations');
   await page.getByText('Sunrise PG').locator('visible=true').first().click();
   await expect(page.getByRole('heading', { name: 'Sunrise PG' })).toBeVisible();

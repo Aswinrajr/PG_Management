@@ -30,7 +30,6 @@ Demo logins after seeding (dev OTP is always `123456`):
 | --- | --- |
 | Super Admin (dev only; production uses `/admin/login`) | 9000000001 |
 | Owner (Sunrise PG) | 9000000002 |
-| Manager | 9000000003 |
 | Resident | 9000000010 |
 
 ## Docs

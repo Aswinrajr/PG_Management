@@ -6,8 +6,8 @@ Instructions for Claude Code (and any AI assistant) working in this repo. Read t
 
 **Roomora** is a multi-tenant SaaS for PG (paying guest) / hostel / co-living owners in India.
 
-- **Super Admin** (platform team) manages all PG businesses, plans, KYC approvals.
-- **Organization** = one PG business (the SaaS tenant). Has Owner, Managers, Staff.
+- **Super Admin** (platform team) manages all PG businesses, plans, and approves new owners.
+- **Organization** = one PG business (the SaaS tenant). Run by one Owner, who may have several properties. There are only three roles: Super Admin, Owner, Resident (docs/11-DECISIONS.md D34).
 - **Property** = one PG building → Floors → Rooms → Beds.
 - **Resident** = person staying in the PG (owners call them "PG tenants" — in code we always say `resident`).
 

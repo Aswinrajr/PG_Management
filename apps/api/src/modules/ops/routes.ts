@@ -1,6 +1,6 @@
 import {
-  ElectricityBody, ExpenseBody, CreateTicketBody, InviteStaffBody, ListQuery, MenuBody, NoticeItemBody,
-  UpdateStaffBody, UpdateTicketBody, zObjectId,
+  ElectricityBody, ExpenseBody, CreateTicketBody, ListQuery, MenuBody, NoticeItemBody,
+  UpdateTicketBody, zObjectId,
 } from '@roomora/types';
 import { Router } from 'express';
 import { z } from 'zod';
@@ -109,20 +109,6 @@ opsRoutes.get('/properties/:id/menus/:weekStart', requirePermission('menu.read')
 opsRoutes.put('/properties/:id/menus/:weekStart', requirePermission('menu.write'), validate({ params: MenuParams, body: MenuBody }), async (req, res) => {
   const { id, weekStart } = req.valid.params;
   res.json({ success: true, data: await service.saveMenu(req.tenant!, id, weekStart, req.valid.body.days) });
-});
-
-opsRoutes.get('/staff', requirePermission('staff.read'), async (req, res) => {
-  res.json({ success: true, data: await service.listStaff(req.tenant!) });
-});
-opsRoutes.post('/staff', requirePermission('staff.write'), validate({ body: InviteStaffBody }), async (req, res) => {
-  res.status(201).json({ success: true, data: await service.inviteStaff(req.tenant!, req.valid.body, req.auth!.userId) });
-});
-opsRoutes.patch('/staff/:id', requirePermission('staff.write'), validate({ params: IdParams, body: UpdateStaffBody }), async (req, res) => {
-  res.json({ success: true, data: await service.updateStaff(req.tenant!, req.valid.params.id, req.valid.body) });
-});
-opsRoutes.delete('/staff/:id', requirePermission('staff.write'), validate({ params: IdParams }), async (req, res) => {
-  await service.removeStaff(req.tenant!, req.valid.params.id);
-  res.json({ success: true, data: {} });
 });
 
 opsRoutes.post('/electricity-readings', requirePermission('invoice.create'), validate({ body: ElectricityBody }), async (req, res) => {

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { EXPENSE_CATEGORIES, TICKET_CATEGORIES, TICKET_PRIORITIES, TICKET_STATUSES } from './enums.js';
-import { zObjectId, zPhone } from './schemas.js';
+import { zObjectId } from './schemas.js';
 
 const zDate = z.coerce.date();
 const zAmount = z.number().int().positive();
@@ -37,7 +37,6 @@ export const CreateTicketBody = z.object({
 export const MeTicketBody = CreateTicketBody.omit({ propertyId: true, roomId: true });
 export const UpdateTicketBody = z.object({
   status: z.enum(TICKET_STATUSES).optional(),
-  assigneeUserId: zObjectId.nullable().optional(),
   priority: z.enum(TICKET_PRIORITIES).optional(),
   note: z.string().max(500).optional(),
 });
@@ -66,14 +65,6 @@ export const MenuBody = z.object({
     .length(7),
 });
 
-export const InviteStaffBody = z.object({
-  phone: zPhone,
-  name: z.string().trim().min(1).max(100),
-  role: z.enum(['manager', 'staff']),
-  propertyIds: z.array(zObjectId).default([]),
-});
-export const UpdateStaffBody = z.object({ role: z.enum(['manager', 'staff']).optional(), propertyIds: z.array(zObjectId).optional() });
-
 export const ElectricityBody = z.object({
   roomId: zObjectId,
   period: z.string().regex(/^\d{4}-\d{2}$/),
@@ -97,7 +88,7 @@ export const PlanBody = z.object({
   code: z.string().min(1),
   priceMonthlyPaise: z.number().int().nonnegative(),
   priceYearlyPaise: z.number().int().nonnegative(),
-  limits: z.object({ properties: z.number().int().positive(), beds: z.number().int().positive(), staff: z.number().int().nonnegative() }),
+  limits: z.object({ properties: z.number().int().positive(), beds: z.number().int().positive() }),
   features: z.array(z.string()).default([]),
   isPublic: z.boolean().default(true),
   sortOrder: z.number().int().default(0),

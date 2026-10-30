@@ -73,7 +73,7 @@ const inviteSchema = new Schema(
     propertyId: Schema.Types.ObjectId,
     stayId: Schema.Types.ObjectId,
     phone: String,
-    type: { type: String, enum: ['resident_booking', 'property_link', 'staff'], required: true },
+    type: { type: String, enum: ['resident_booking', 'property_link'], required: true },
     role: String,
     expiresAt: { type: Date, required: true },
     usedAt: Date,

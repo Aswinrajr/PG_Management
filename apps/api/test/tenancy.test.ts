@@ -4,7 +4,7 @@ import { assertPropertyAccess, propertyScope } from '../src/middleware/auth.js';
 import { tenantPlugin } from '../src/lib/tenant-plugin.js';
 import { Membership, Organization } from '../src/modules/orgs/model.js';
 import { assertPlanLimit } from '../src/modules/orgs/plans.js';
-import { api, login, ownerWithOrg, useTestDb } from './helpers.js';
+import { api, login, ownerWithOrg, pendingOwner, useTestDb } from './helpers.js';
 
 useTestDb();
 
@@ -67,15 +67,20 @@ describe('org access', () => {
     await api(a.token).patch(`/org/${a.orgId}`).send({ name: 'X Y' }).expect(402);
   });
 
-  it('denies a manager what the role table denies', async () => {
+  it('holds a new owner until approved (D35)', async () => {
+    const a = await pendingOwner();
+    await api(a.token).get(`/org/${a.orgId}`).expect(200);
+    await api(a.token).post(`/org/${a.orgId}/properties`).send({ name: 'Home', type: 'boys', address: { line1: 'x', city: 'y', state: 'z', pincode: '560001' } }).expect(201);
+    await api(a.token).put(`/org/${a.orgId}/kyc`).send({ docs: [{ type: 'owner_id', key: 'k' }] }).expect(200);
+    await api(a.token).post(`/org/${a.orgId}/expenses`).send({}).expect(403);
+    await api(a.token).post(`/org/${a.orgId}/stays`).send({}).expect(403);
+  });
+
+  it('has no manager or staff access (D34)', async () => {
     const a = await ownerWithOrg();
-    const manager = await login();
-    await Membership.create({ userId: manager.userId, orgId: a.orgId, role: 'manager' });
-    await api(manager.token).get(`/org/${a.orgId}`).expect(200);
-    await api(manager.token).put(`/org/${a.orgId}/kyc`).send({ docs: [{ type: 'owner_id', key: 'k' }] }).expect(200);
-    const staff = await login();
-    await Membership.create({ userId: staff.userId, orgId: a.orgId, role: 'staff' });
-    await api(staff.token).get(`/org/${a.orgId}`).expect(403);
+    const other = await login();
+    await expect(Membership.create({ userId: other.userId, orgId: a.orgId, role: 'manager' })).rejects.toThrow();
+    await api(a.token).get(`/org/${a.orgId}/staff`).expect(404);
   });
 
   it('does not treat a resident membership as org access', async () => {
@@ -87,9 +92,9 @@ describe('org access', () => {
 });
 
 describe('property scope', () => {
-  const tenant = { orgId: 'o', role: 'manager' as const, permissions: [], propertyIds: ['p1'] };
+  const tenant = { orgId: 'o', role: 'owner' as const, permissions: [], propertyIds: ['p1'] };
 
-  it('limits managers to assigned properties', () => {
+  it('limits a scoped member to assigned properties', () => {
     expect(propertyScope(tenant)).toEqual({ propertyId: { $in: ['p1'] } });
     expect(() => assertPropertyAccess(tenant, 'p2')).toThrow('do not have access');
     expect(() => assertPropertyAccess(tenant, 'p1')).not.toThrow();
@@ -103,7 +108,7 @@ describe('property scope', () => {
 describe('plan limits', () => {
   it('returns 402 past the limit', async () => {
     const a = await ownerWithOrg();
-    await expect(assertPlanLimit(a.orgId, 'beds', 28, 2)).resolves.toBeUndefined();
-    await expect(assertPlanLimit(a.orgId, 'beds', 28, 3)).rejects.toMatchObject({ status: 402, code: 'PLAN_LIMIT' });
+    await expect(assertPlanLimit(a.orgId, 'beds', 98, 2)).resolves.toBeUndefined();
+    await expect(assertPlanLimit(a.orgId, 'beds', 98, 3)).rejects.toMatchObject({ status: 402, code: 'PLAN_LIMIT' });
   });
 });

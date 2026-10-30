@@ -4,10 +4,10 @@ import { Organization, Plan } from './model.js';
 const UNLIMITED = 1_000_000;
 
 export const DEFAULT_PLANS = [
-  { code: 'trial', name: 'Trial', priceMonthlyPaise: 0, priceYearlyPaise: 0, limits: { properties: 1, beds: 30, staff: 2 }, features: [], isPublic: false, sortOrder: 0 },
-  { code: 'starter', name: 'Starter', priceMonthlyPaise: 49900, priceYearlyPaise: 499000, limits: { properties: 1, beds: 50, staff: 2 }, features: [], sortOrder: 1 },
-  { code: 'growth', name: 'Growth', priceMonthlyPaise: 149900, priceYearlyPaise: 1499000, limits: { properties: 5, beds: 300, staff: 10 }, features: ['gst', 'reports'], sortOrder: 2 },
-  { code: 'pro', name: 'Pro', priceMonthlyPaise: 399900, priceYearlyPaise: 3999000, limits: { properties: UNLIMITED, beds: 1000, staff: UNLIMITED }, features: ['gst', 'reports', 'planner3d', 'whatsapp'], sortOrder: 3 },
+  { code: 'trial', name: 'Trial', priceMonthlyPaise: 0, priceYearlyPaise: 0, limits: { properties: 5, beds: 100 }, features: [], isPublic: false, sortOrder: 0 },
+  { code: 'starter', name: 'Starter', priceMonthlyPaise: 49900, priceYearlyPaise: 499000, limits: { properties: 1, beds: 50 }, features: [], sortOrder: 1 },
+  { code: 'growth', name: 'Growth', priceMonthlyPaise: 149900, priceYearlyPaise: 1499000, limits: { properties: 5, beds: 300 }, features: ['gst', 'reports'], sortOrder: 2 },
+  { code: 'pro', name: 'Pro', priceMonthlyPaise: 399900, priceYearlyPaise: 3999000, limits: { properties: UNLIMITED, beds: 1000 }, features: ['gst', 'reports', 'planner3d', 'whatsapp'], sortOrder: 3 },
 ];
 
 /** D13: safe to run on every start. */
@@ -17,7 +17,7 @@ export async function ensurePlans() {
   );
 }
 
-export type LimitKey = 'properties' | 'beds' | 'staff';
+export type LimitKey = 'properties' | 'beds';
 
 export async function assertPlanLimit(orgId: string, key: LimitKey, current: number, adding: number) {
   const org = await Organization.findById(orgId).lean();

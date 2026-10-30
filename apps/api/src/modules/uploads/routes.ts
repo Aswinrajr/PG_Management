@@ -53,8 +53,8 @@ fileRoutes.get('/*key', requireAuth, async (req, res) => {
   if (!/^[a-f\d]{24}\/(kyc|photo|bill|ticket)\/[\w-]+\.(webp|pdf)$/i.test(key)) throw new AppError('NOT_FOUND', 'Not found', 404);
   const [orgId, kind] = key.split('/') as [string, string];
   const memberships = await Membership.find({ userId: req.auth!.userId, orgId, status: 'active' }).lean();
-  const isStaff = memberships.some((m) => m.role !== 'resident');
-  if (!req.auth!.isSuperAdmin && !isStaff && (kind === 'kyc' ? true : memberships.length === 0)) {
+  const isOwner = memberships.some((m) => m.role === 'owner');
+  if (!req.auth!.isSuperAdmin && !isOwner && (kind === 'kyc' ? true : memberships.length === 0)) {
     const ownKyc = kind === 'kyc' && memberships.length > 0 && (await ownsKyc(req.auth!.userId, orgId, key));
     if (!ownKyc) throw new AppError('FORBIDDEN', 'You do not have access to this file', 403);
   }

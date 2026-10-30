@@ -4,8 +4,6 @@ import { withTransaction } from '../../lib/db.js';
 import type { CreateOrgBody, UpdateOrgBody } from '@roomora/types';
 import { AuditLog, Membership, Organization, Plan } from './model.js';
 
-const TRIAL_DAYS = 14;
-
 const slugify = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
 
 export const audit = (entry: {
@@ -29,7 +27,6 @@ export async function createOrg(userId: string, input: CreateOrgBody) {
         slug: `${slugify(input.name)}-${randomToken(3).toLowerCase()}`,
         ownerUserId: userId,
         planId: trial._id,
-        trialEndsAt: new Date(Date.now() + TRIAL_DAYS * 86400_000),
       }],
       { session },
     );

@@ -6,6 +6,7 @@ What exists today, and what does not. Update this when work lands.
 
 - API: auth, tenancy, RBAC, plans, properties, stays, billing, checkout, expenses, dashboard, reports (JSON), complaints, notices, menus, staff, electricity, resident `/me`, uploads, PDFs, Super Admin, Razorpay orders and webhook, jobs, DPDP export and deletion.
 - Web: Owner, Resident and Super Admin screens at 360 px and 1280 px.
+- Three roles, owner approval before use, and several PGs under one owner (D34–D36).
 - Room designer (2D), resident room view, resident work and vehicle details, games with live chat, washing machine slots with next-person alerts.
 
 ## Built, not proven against the real service

@@ -20,11 +20,9 @@ const OrgsQuery = z.object({
   q: z.string().max(100).optional(),
 });
 
-/** Support admins are read-only: anything but GET needs a full super admin. */
 async function requireSuperAdmin(req: Request, _res: Response, next: NextFunction) {
-  const user = req.auth?.isSuperAdmin ? await User.findById(req.auth.userId, { isSuperAdmin: 1, adminRole: 1, status: 1 }).lean() : null;
+  const user = req.auth?.isSuperAdmin ? await User.findById(req.auth.userId, { isSuperAdmin: 1, status: 1 }).lean() : null;
   if (!user?.isSuperAdmin || user.status !== 'active') throw new AppError('FORBIDDEN', 'Admin access only', 403);
-  if (req.method !== 'GET' && user.adminRole === 'support') throw new AppError('FORBIDDEN', 'Support admins have read access only', 403);
   next();
 }
 

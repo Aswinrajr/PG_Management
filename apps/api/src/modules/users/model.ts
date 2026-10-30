@@ -7,7 +7,6 @@ const userSchema = new Schema(
     email: { type: String, unique: true, sparse: true },
     avatarKey: String,
     isSuperAdmin: { type: Boolean, default: false },
-    adminRole: { type: String, enum: ['super', 'support'] },
     passwordHash: String,
     totpSecretEnc: String,
     preferredLanguage: { type: String, default: 'en' },

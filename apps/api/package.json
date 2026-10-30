@@ -8,6 +8,7 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "seed": "tsx --env-file-if-exists=.env src/seed/index.ts",
+    "migrate:three-roles": "tsx --env-file-if-exists=.env src/seed/three-roles.ts",
     "worker": "tsx --env-file-if-exists=.env src/worker.ts",
     "typecheck": "tsc --noEmit",
     "lint": "tsc --noEmit",

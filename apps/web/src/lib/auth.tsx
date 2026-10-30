@@ -6,7 +6,7 @@ export interface Membership {
   orgId: string;
   orgName: string;
   orgStatus?: string;
-  role: 'owner' | 'manager' | 'staff' | 'resident';
+  role: 'owner' | 'resident';
   propertyIds: string[];
 }
 

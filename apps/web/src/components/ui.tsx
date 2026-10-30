@@ -184,6 +184,7 @@ const STATUS: Record<string, [Tone, LucideIcon, string]> = {
   'kyc.not_submitted': ['neutral', CircleDashed, 'Not submitted'],
   'kyc.pending_review': ['warning', Clock, 'Pending review'],
   'kyc.approved': ['success', CheckCircle2, 'Approved'],
+  'org.pending': ['warning', Clock, 'Waiting for approval'],
   'org.trial': ['info', Clock, 'Trial'],
   'org.active': ['success', CheckCircle2, 'Active'],
   'org.read_only': ['warning', Clock, 'Read only'],

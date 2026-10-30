@@ -5,7 +5,7 @@ declare global {
     interface Request {
       id: string;
       valid: { body?: any; query?: any; params?: any };
-      auth?: { userId: string; isSuperAdmin: boolean; adminRole?: 'super' | 'support'; impersonatedBy?: string };
+      auth?: { userId: string; isSuperAdmin: boolean; impersonatedBy?: string };
       tenant?: { orgId: string; role: Role; permissions: readonly Permission[]; propertyIds: string[] | null };
     }
   }

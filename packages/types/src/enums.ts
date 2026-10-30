@@ -1,7 +1,7 @@
 export const ORG_TYPES = ['boys', 'girls', 'coliving', 'mixed'] as const;
-export const ORG_STATUSES = ['trial', 'active', 'read_only', 'suspended', 'cancelled'] as const;
+export const ORG_STATUSES = ['pending', 'trial', 'active', 'read_only', 'suspended', 'cancelled'] as const;
 export const KYC_STATUSES = ['not_submitted', 'pending_review', 'approved', 'rejected'] as const;
-export const ROLES = ['owner', 'manager', 'staff', 'resident'] as const;
+export const ROLES = ['owner', 'resident'] as const;
 export const MEMBERSHIP_STATUSES = ['invited', 'active', 'removed'] as const;
 export const BED_STATUSES = ['vacant', 'reserved', 'occupied', 'notice', 'maintenance'] as const;
 export const STAY_STATUSES = ['booked', 'active', 'notice', 'checked_out', 'cancelled'] as const;

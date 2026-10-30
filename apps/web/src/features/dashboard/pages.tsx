@@ -51,11 +51,10 @@ function Checklist() {
 
 export default function DashboardPage() {
   const { t } = useTranslation();
-  const { orgPath, workspace } = useAuth();
+  const { orgPath } = useAuth();
   const { query: filter } = usePropertyFilter();
   const query = useGet<Dashboard>(orgPath(`/dashboard?${filter}`));
   const remind = useSend<string>('post', (id) => orgPath(`/invoices/${id}/remind`));
-  const canBill = workspace?.role !== 'staff';
 
   const actions = [
     { to: '/app/residents/new', label: t('Add resident'), icon: UserPlus },
@@ -123,7 +122,7 @@ export default function DashboardPage() {
                           <p className="text-xs text-text-muted"><Clock className="inline size-3" aria-hidden /> {formatDate(invoice.dueDate)}</p>
                         </div>
                         <Money paise={invoice.balancePaise} className="font-semibold" />
-                        {canBill && <Button variant="secondary" loading={remind.isPending && remind.variables === invoice._id} onClick={() => remind.mutate(invoice._id)}>{t('Remind')}</Button>}
+                        <Button variant="secondary" loading={remind.isPending && remind.variables === invoice._id} onClick={() => remind.mutate(invoice._id)}>{t('Remind')}</Button>
                       </li>
                     ))}
                   </ul>

@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach } from 'vitest';
 import { createApp } from '../src/app.js';
 import { connectDb } from '../src/lib/db.js';
 import { kv, MemoryKV } from '../src/lib/kv.js';
+import { Organization } from '../src/modules/orgs/model.js';
 import { ensurePlans } from '../src/modules/orgs/plans.js';
 
 export const app = createApp();
@@ -47,8 +48,15 @@ export const api = (token?: string) => {
   };
 };
 
-export async function ownerWithOrg(name = 'Sunrise PG') {
+export async function pendingOwner(name = 'Sunrise PG') {
   const owner = await login();
   const res = await api(owner.token).post('/orgs').send({ name, type: 'boys', city: 'Bengaluru', state: 'Karnataka' }).expect(201);
   return { ...owner, orgId: res.body.data._id as string };
+}
+
+/** An owner the Super Admin has already approved. */
+export async function ownerWithOrg(name = 'Sunrise PG') {
+  const owner = await pendingOwner(name);
+  await Organization.updateOne({ _id: owner.orgId }, { status: 'trial', 'kyc.status': 'approved' });
+  return owner;
 }

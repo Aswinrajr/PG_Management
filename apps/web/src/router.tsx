@@ -1,6 +1,6 @@
 import {
   BedDouble, Building2, ClipboardList, CreditCard, FileCheck2, FileText, Gauge, Home, LayoutDashboard, Megaphone, MessageSquareWarning,
-  Radio, ReceiptIndianRupee, ScrollText, Settings, Trophy, UserCog, User, Users, UtensilsCrossed, Wallet, WalletCards, WashingMachine, Zap,
+  Radio, ReceiptIndianRupee, ScrollText, Settings, Trophy, User, Users, UtensilsCrossed, Wallet, WalletCards, WashingMachine, Zap,
 } from 'lucide-react';
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Link, Navigate, Outlet, useRouteError } from 'react-router';
@@ -28,6 +28,8 @@ const community = () => import('./features/community/pages');
 const laundry = () => import('./features/laundry/pages');
 const rooms = () => import('./features/rooms/pages');
 
+const PendingApproval = named(() => import('./features/onboarding/pages'), 'PendingApprovalPage');
+
 const OWNER_NAV: NavItem[] = [
   { to: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/app/bedmap', label: 'Bed map', icon: BedDouble },
@@ -43,7 +45,6 @@ const OWNER_NAV: NavItem[] = [
   { to: '/app/laundry', label: 'Laundry', icon: WashingMachine },
   { to: '/app/reports', label: 'Reports', icon: ClipboardList },
   { to: '/app/properties', label: 'Properties', icon: Building2 },
-  { to: '/app/staff', label: 'Staff', icon: UserCog },
   { to: '/app/settings', label: 'Settings', icon: Settings },
 ];
 
@@ -53,9 +54,6 @@ const OWNER_TABS: NavItem[] = [
   { to: '/app/residents', label: 'Residents', icon: Users },
   { to: '/app/billing/dues', label: 'Money', icon: Wallet },
 ];
-
-/** Staff see only what their permissions allow. */
-const STAFF_PATHS = ['/app/dashboard', '/app/bedmap', '/app/residents', '/app/complaints', '/app/notices', '/app/food-menu'];
 
 const RESIDENT_NAV: NavItem[] = [
   { to: '/me', label: 'Home', icon: Home, end: true },
@@ -85,10 +83,10 @@ function OwnerLayout() {
   if (!user) return <Navigate to="/login" replace />;
   if (!workspace) return <Navigate to="/onboarding" replace />;
   if (workspace.role === 'resident') return <Navigate to="/me" replace />;
-  const nav = workspace.role === 'staff' ? OWNER_NAV.filter((n) => STAFF_PATHS.includes(n.to)) : OWNER_NAV;
+  if (workspace.orgStatus === 'pending') return <Suspense fallback={<ListSkeleton />}><PendingApproval /></Suspense>;
   return (
     <PropertyProvider>
-      <AppShell nav={nav} tabs={OWNER_TABS.filter((n) => nav.some((x) => x.to === n.to))} title={workspace.orgName} topbar={<PropertySwitcher />} />
+      <AppShell nav={OWNER_NAV} tabs={OWNER_TABS} title={workspace.orgName} topbar={<PropertySwitcher />} />
     </PropertyProvider>
   );
 }
@@ -167,7 +165,6 @@ export const router = createBrowserRouter([
         { path: 'laundry', Component: named(laundry, 'OwnerLaundryPage') },
         { path: 'rooms/:roomId/design', Component: named(rooms, 'RoomDesignPage') },
         { path: 'reports', Component: named(ops, 'ReportsPage') },
-        { path: 'staff', Component: named(ops, 'StaffPage') },
         { path: 'settings', Component: named(ops, 'SettingsPage') },
       ],
     }],

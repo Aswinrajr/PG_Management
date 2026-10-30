@@ -34,7 +34,6 @@ const ticketSchema = new Schema(
     photos: [String],
     priority: { type: String, enum: TICKET_PRIORITIES, default: 'medium' },
     status: { type: String, enum: TICKET_STATUSES, default: 'open' },
-    assigneeUserId: ObjectId,
     history: [{ _id: false, at: Date, byUserId: ObjectId, action: String, from: String, to: String, note: String }],
     rating: Number,
     ratingComment: String,

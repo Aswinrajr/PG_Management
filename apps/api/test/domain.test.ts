@@ -65,12 +65,14 @@ describe('properties', () => {
     expect(map.floors[0].rooms[0].beds.map((b: { label: string }) => b.label)).toEqual(['A', 'B']);
   });
 
-  it('enforces the trial property and bed limits', async () => {
+  it('lets one owner run several PGs, up to the plan limit', async () => {
     const ctx = await setup(1);
-    await ctx.client.post(`${ctx.base}/properties`).send({ name: 'Second', address, type: 'boys' }).expect(402);
+    for (let i = 2; i <= 5; i++) await ctx.client.post(`${ctx.base}/properties`).send({ name: `PG ${i}`, address, type: 'boys' }).expect(201);
+    expect((await ctx.client.get(`${ctx.base}/properties`).expect(200)).body.data).toHaveLength(5);
+    await ctx.client.post(`${ctx.base}/properties`).send({ name: 'PG 6', address, type: 'boys' }).expect(402);
     await ctx.client
       .post(`${ctx.base}/properties/${ctx.property._id}/rooms/bulk`)
-      .send({ floors: [{ level: 2, label: '2nd' }], rooms: Array.from({ length: 8 }, (_, i) => ({ floorLevel: 2, number: `2${i}`, sharing: 4 })) })
+      .send({ floors: [{ level: 2, label: '2nd' }], rooms: Array.from({ length: 30 }, (_, i) => ({ floorLevel: 2, number: `2${i}`, sharing: 4 })) })
       .expect(402);
   });
 
@@ -88,14 +90,6 @@ describe('properties', () => {
     await book(ctx, ctx.beds[0]!.id).expect(201);
     await ctx.client.patch(`${ctx.base}/beds/${ctx.beds[0]!.id}`).send({ status: 'maintenance' }).expect(409);
     await ctx.client.patch(`${ctx.base}/beds/${ctx.beds[1]!.id}`).send({ status: 'maintenance' }).expect(200);
-  });
-
-  it('limits a manager to assigned properties', async () => {
-    const ctx = await setup();
-    const manager = await login();
-    await Membership.create({ userId: manager.userId, orgId: ctx.owner.orgId, role: 'manager', propertyIds: [] });
-    await api(manager.token).get(`${ctx.base}/properties/${ctx.property._id}`).expect(403);
-    expect((await api(manager.token).get(`${ctx.base}/properties`).expect(200)).body.data).toHaveLength(0);
   });
 
   it('hides another org\'s records behind 403', async () => {

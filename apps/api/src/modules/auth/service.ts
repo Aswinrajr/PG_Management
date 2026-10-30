@@ -33,7 +33,7 @@ export async function sendOtp(phone: string) {
   return { resendInSec: RESEND_SEC };
 }
 
-export async function checkOtp(phone: string, code: string) {
+export async function checkOtp(phone: string, code: string, consume = true) {
   const stored = await kv.get(`otp:${phone}`);
   if (!stored) throw new AppError('UNAUTHORIZED', 'OTP expired or incorrect', 401);
   const attempts = await kv.incr(`otp:attempts:${phone}`, OTP_TTL_SEC);
@@ -44,7 +44,7 @@ export async function checkOtp(phone: string, code: string) {
   if (!sameHash(stored, hashOtp(phone, code))) {
     throw new AppError('UNAUTHORIZED', 'OTP expired or incorrect', 401, { attemptsLeft: MAX_ATTEMPTS - attempts });
   }
-  await kv.del(`otp:${phone}`);
+  if (consume) await kv.del(`otp:${phone}`);
 }
 
 interface ClientInfo {
@@ -88,13 +88,14 @@ export const publicUser = (user: { _id: unknown; phone: string; name?: string | 
 });
 
 export async function verifyOtp(input: { phone: string; code: string; consent?: boolean }, client: ClientInfo) {
-  await checkOtp(input.phone, input.code);
-
   let user = await User.findOne({ phone: input.phone });
   const isNewUser = !user;
+  const needsConsent = isNewUser && !input.consent;
+  await checkOtp(input.phone, input.code, !needsConsent); // keep the OTP so they can retry after ticking consent
+
   if (user?.status === 'blocked') throw new AppError('FORBIDDEN', 'This account is blocked', 403);
   if (user?.isSuperAdmin && !env.OTP_DEV_MODE) throw new AppError('FORBIDDEN', 'Use the admin login', 403); // D15
-  if (isNewUser && !input.consent) {
+  if (needsConsent) {
     throw new AppError('VALIDATION_ERROR', 'Please accept the privacy policy to continue', 400, { consentRequired: true });
   }
   user ??= await User.create({ phone: input.phone });

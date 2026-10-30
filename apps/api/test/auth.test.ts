@@ -68,6 +68,7 @@ describe('otp', () => {
     await send(phone);
     const res = await verify(phone, '123456', false).expect(400);
     expect(res.body.error.details.consentRequired).toBe(true);
+    await verify(phone, '123456', true).expect(200); // the same OTP still works
   });
 
   it('rejects an invalid phone and operator injection', async () => {

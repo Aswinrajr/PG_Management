@@ -17,7 +17,7 @@ export function AdminDashboardPage() {
         {(d) => (
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-              <StatCard icon={Building2} label={t('Organizations')} value={d.orgs.total} hint={t('{{active}} active · {{trial}} trial · {{suspended}} suspended', { active: d.orgs.active, trial: d.orgs.trial, suspended: d.orgs.suspended })} to="/admin/organizations" />
+              <StatCard icon={Building2} label={t('Organizations')} value={d.orgs.total} hint={t('{{active}} active · {{trial}} trial · {{pending}} waiting', { active: d.orgs.active, trial: d.orgs.trial, pending: d.orgs.pending })} to="/admin/organizations" />
               <StatCard icon={BedDouble} label={t('Properties / beds')} value={`${d.properties} / ${d.beds}`} />
               <StatCard icon={Percent} label={t('Occupancy')} value={`${d.occupancyPct}%`} />
               <StatCard icon={IndianRupee} label={t('Rent GMV')} value={formatINR(d.rentGmvPaise)} />
@@ -56,7 +56,7 @@ export function OrganizationsPage() {
         <Input className="max-w-sm" aria-label={t('Search')} placeholder={t('Search name')} value={q} onChange={(e) => { setQ(e.target.value); setPage(1); }} />
         <Select aria-label={t('Status')} className="w-auto" value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }}>
           <option value="">{t('All statuses')}</option>
-          {['trial', 'active', 'read_only', 'suspended'].map((s) => <option key={s} value={s}>{t(s)}</option>)}
+          {['pending', 'trial', 'active', 'read_only', 'suspended'].map((s) => <option key={s} value={s}>{t(s)}</option>)}
         </Select>
       </div>
       <Query query={query}>
@@ -149,7 +149,6 @@ export function OrganizationDetailPage() {
                 <dl className="grid grid-cols-2 gap-1">
                   <dt>{t('Properties')}</dt><dd className="tabular text-right">{usage.properties} / {plan?.limits?.properties}</dd>
                   <dt>{t('Beds')}</dt><dd className="tabular text-right">{usage.beds} / {plan?.limits?.beds}</dd>
-                  <dt>{t('Team')}</dt><dd className="tabular text-right">{usage.staff}</dd>
                 </dl>
               </Card>
               <Card>
@@ -165,7 +164,7 @@ export function OrganizationDetailPage() {
                 </div>
               </Card>
               <Card>
-                <CardTitle>{t('Team')}</CardTitle>
+                <CardTitle>{t('Owner')}</CardTitle>
                 <ul className="space-y-2">{users.map((u: any) => <li key={u._id} className="flex justify-between gap-2"><span>{u.user?.name || displayPhone(u.user?.phone)}</span><span className="capitalize text-text-muted">{t(u.role)}</span></li>)}</ul>
               </Card>
               <Card>
@@ -182,12 +181,40 @@ export function OrganizationDetailPage() {
   );
 }
 
+function KycReview({ org, onDone }: { org: any; onDone: () => void }) {
+  const { t } = useTranslation();
+  const detail = useGet<any>(`/admin/orgs/${org._id}`);
+  const decide = useSend<{ decision: string; reason?: string }>('post', `/admin/orgs/${org._id}/kyc`);
+  const [reason, setReason] = useState('');
+  const open = async (key: string) => window.open(URL.createObjectURL(await api.blob(`/files/${key}`)), '_blank');
+  const owner = detail.data?.users.find((u: any) => u.role === 'owner')?.user;
+  return (
+    <Card>
+      <CardTitle>{org.name}</CardTitle>
+      <dl className="mb-3 grid gap-2 text-sm sm:grid-cols-2">
+        <div><dt className="text-text-muted">{t('Owner')}</dt><dd>{owner?.name || '—'} {displayPhone(owner?.phone)}</dd></div>
+        <div><dt className="text-text-muted">{t('Location')}</dt><dd>{org.city}, {org.state}</dd></div>
+        <div><dt className="text-text-muted">{t('Type')}</dt><dd className="capitalize">{t(org.type)}</dd></div>
+        <div><dt className="text-text-muted">{t('GSTIN')}</dt><dd>{org.gstin || '—'}</dd></div>
+        <div className="sm:col-span-2"><dt className="text-text-muted">{t('Properties')}</dt><dd>{detail.data?.properties.map((p: any) => p.name).join(', ') || '—'}</dd></div>
+      </dl>
+      <div className="mb-3 flex flex-wrap gap-2">
+        {org.kyc.docs.map((d: any) => <Button key={d.key} variant="secondary" onClick={() => void open(d.key)}>{t(d.type)}</Button>)}
+      </div>
+      <Field label={t('Reason, if rejecting')}><Textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+      <FormError error={decide.error} />
+      <div className="mt-3 flex gap-2">
+        <Button loading={decide.isPending} onClick={() => decide.mutate({ decision: 'approve' }, { onSuccess: onDone })}>{t('Approve')}</Button>
+        <Button variant="danger" onClick={() => decide.mutate({ decision: 'reject', reason }, { onSuccess: onDone })}>{t('Reject')}</Button>
+      </div>
+    </Card>
+  );
+}
+
 export function KycQueuePage() {
   const { t } = useTranslation();
   const query = useGetPage<any>('/admin/orgs?kyc=pending_review&limit=100');
   const [selected, setSelected] = useState<any>(null);
-  const [reason, setReason] = useState('');
-  const decide = useSend<{ decision: string; reason?: string }>('post', () => `/admin/orgs/${selected?._id}/kyc`);
   return (
     <>
       <PageHeader title={t('KYC queue')} />
@@ -199,16 +226,7 @@ export function KycQueuePage() {
                 {items.map((org) => <li key={org._id}><button type="button" onClick={() => setSelected(org)} className={`min-h-11 w-full rounded-md border p-3 text-left ${selected?._id === org._id ? 'border-primary bg-primary-soft' : 'border-border bg-surface'}`}>{org.name}</button></li>)}
               </ul>
               {selected ? (
-                <Card>
-                  <CardTitle>{selected.name}</CardTitle>
-                  <ul className="mb-3 list-inside list-disc text-text-muted">{selected.kyc.docs.map((d: any) => <li key={d.key}>{d.type}</li>)}</ul>
-                  <Field label={t('Reason, if rejecting')}><Textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
-                  <FormError error={decide.error} />
-                  <div className="mt-3 flex gap-2">
-                    <Button loading={decide.isPending} onClick={() => decide.mutate({ decision: 'approve' }, { onSuccess: () => setSelected(null) })}>{t('Approve')}</Button>
-                    <Button variant="danger" onClick={() => decide.mutate({ decision: 'reject', reason }, { onSuccess: () => setSelected(null) })}>{t('Reject')}</Button>
-                  </div>
-                </Card>
+                <KycReview key={selected._id} org={selected} onDone={() => setSelected(null)} />
               ) : <EmptyState title={t('Choose an organization')} />}
             </div>
           )
@@ -237,7 +255,6 @@ export function PlansPage() {
               { header: t('Monthly'), align: 'right', cell: (p) => <Money paise={p.priceMonthlyPaise} /> },
               { header: t('Properties'), cell: (p) => p.limits.properties },
               { header: t('Beds'), cell: (p) => p.limits.beds },
-              { header: t('Staff'), cell: (p) => p.limits.staff },
             ]}
             mobile={(p) => <div className="flex justify-between gap-2"><span>{p.name}</span><Money paise={p.priceMonthlyPaise} /></div>}
           />

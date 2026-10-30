@@ -6,7 +6,7 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { Button, Card, CardTitle, DataList, EmptyState, Field, FileUpload, FormError, Input, Money, PageHeader, Pagination, Query, Select, Sheet, StatusBadge, Tabs, Textarea } from '../../components/ui';
 import { useGet, useGetPage, useSend } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
-import { displayPhone, formatDate, formatINR, rupeesToPaise, todayInput, weekStartOf } from '../../lib/format';
+import { formatDate, formatINR, rupeesToPaise, todayInput, weekStartOf } from '../../lib/format';
 import { useProperties, usePropertyFilter } from '../../lib/property';
 
 const CHART = ['var(--color-primary)', 'var(--color-secondary)', 'var(--color-accent)', '#EC4899', '#0EA5E9', '#84CC16', '#94A3B8', '#475569'];
@@ -115,7 +115,6 @@ function TicketDrawer({ ticket, onClose }: { ticket: any; onClose: () => void })
   const { t } = useTranslation();
   const { orgPath } = useAuth();
   const update = useSend('patch', orgPath(`/tickets/${ticket._id}`));
-  const staff = useGet<any[]>(orgPath('/staff'), { retry: false });
   const [note, setNote] = useState('');
   const NEXT: Record<string, string[]> = { open: ['in_progress', 'resolved', 'rejected'], in_progress: ['resolved', 'open'], resolved: ['closed', 'open'], closed: [], rejected: [] };
   return (
@@ -123,14 +122,6 @@ function TicketDrawer({ ticket, onClose }: { ticket: any; onClose: () => void })
       <StatusBadge kind="ticket" status={ticket.status} />
       <p>{ticket.description}</p>
       <p className="text-xs capitalize text-text-muted">{t(ticket.category)} · {t(ticket.priority)} · {formatDate(ticket.createdAt)}</p>
-      {staff.data && (
-        <Field label={t('Assign to')}>
-          <Select value={ticket.assigneeUserId ?? ''} onChange={(e) => update.mutate({ assigneeUserId: e.target.value || null })}>
-            <option value="">{t('Nobody')}</option>
-            {staff.data.map((s) => <option key={s.id} value={s.userId}>{s.name || displayPhone(s.phone)}</option>)}
-          </Select>
-        </Field>
-      )}
       <Field label={t('Note')}><Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
       <FormError error={update.error} />
       <div className="flex flex-wrap gap-2">
@@ -287,55 +278,6 @@ export function FoodMenuPage() {
   );
 }
 
-export function StaffPage() {
-  const { t } = useTranslation();
-  const { orgPath } = useAuth();
-  const properties = useProperties();
-  const query = useGet<any[]>(orgPath('/staff'));
-  const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({ phone: '', name: '', role: 'staff', propertyIds: [] as string[] });
-  const save = useSend('post', orgPath('/staff'));
-  const remove = useSend<string>('delete', (id) => orgPath(`/staff/${id}`));
-  return (
-    <>
-      <PageHeader title={t('Staff')} actions={<Button onClick={() => setAdding(true)}>{t('Invite staff')}</Button>} />
-      <Query query={query}>
-        {(items) => (
-          <DataList
-            rows={items}
-            rowKey={(s) => s.id}
-            columns={[
-              { header: t('Name'), cell: (s) => s.name || '—' },
-              { header: t('Phone'), cell: (s) => displayPhone(s.phone) },
-              { header: t('Role'), cell: (s) => <span className="capitalize">{t(s.role)}</span> },
-              { header: t('Actions'), cell: (s) => s.role !== 'owner' && <Button variant="secondary" onClick={() => remove.mutate(s.id)}>{t('Remove')}</Button> },
-            ]}
-            mobile={(s) => <div className="flex justify-between gap-2"><span>{s.name || displayPhone(s.phone)}</span><span className="capitalize text-text-muted">{t(s.role)}</span></div>}
-          />
-        )}
-      </Query>
-      <Sheet open={adding} onClose={() => setAdding(false)} title={t('Invite staff')}>
-        <div className="space-y-3">
-          <Field label={t('Mobile number')}><Input inputMode="numeric" maxLength={10} value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '') })} /></Field>
-          <Field label={t('Name')}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
-          <Field label={t('Role')}><Select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}><option value="staff">{t('staff')}</option><option value="manager">{t('manager')}</option></Select></Field>
-          <fieldset className="space-y-1">
-            <legend className="text-xs font-medium text-text-muted">{t('Properties')}</legend>
-            {properties.data?.map((p) => (
-              <label key={p._id} className="flex min-h-11 items-center gap-2">
-                <input type="checkbox" className="size-5" checked={form.propertyIds.includes(p._id)} onChange={(e) => setForm({ ...form, propertyIds: e.target.checked ? [...form.propertyIds, p._id] : form.propertyIds.filter((x) => x !== p._id) })} />
-                {p.name}
-              </label>
-            ))}
-          </fieldset>
-          <FormError error={save.error} />
-          <Button block loading={save.isPending} onClick={() => save.mutate(form, { onSuccess: () => setAdding(false) })}>{t('Invite staff')}</Button>
-        </div>
-      </Sheet>
-    </>
-  );
-}
-
 const REPORTS = [
   { type: 'collections', label: 'Collections', financial: false },
   { type: 'dues', label: 'Dues', financial: false },
@@ -397,7 +339,7 @@ export function ReportsPage() {
   );
 }
 
-function KycCard({ org }: { org: any }) {
+export function KycCard({ org }: { org: any }) {
   const { t } = useTranslation();
   const { orgPath, workspace } = useAuth();
   const [ownerId, setOwnerId] = useState('');

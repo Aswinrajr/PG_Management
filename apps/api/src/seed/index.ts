@@ -98,16 +98,14 @@ async function seed() {
     name: 'Platform Admin',
     email: 'admin@roomora.in',
     isSuperAdmin: true,
-    adminRole: 'super',
     passwordHash: await hashPassword(SEED_PASSWORD),
     totpSecretEnc: encrypt(totpSecret),
   });
   const owner = await User.create({ phone: '919000000002', name: 'Suresh Kumar' });
-  const manager = await User.create({ phone: '919000000003', name: 'Anita Desai' });
   const owner2 = await User.create({ phone: '919000000004', name: 'Farah Khan' });
 
   const sunrise = await createOrg('Sunrise PG', owner._id, growth._id);
-  const lotus = await createOrg('Lotus Stays', owner2._id, growth._id, { status: 'trial', trialEndsAt: addDays(new Date(), 10), kyc: { status: 'pending_review', docs: [{ type: 'owner_id', key: 'seed' }] } });
+  const lotus = await createOrg('Lotus Stays', owner2._id, growth._id, { status: 'pending', kyc: { status: 'pending_review', docs: [{ type: 'owner_id', key: 'seed' }] } });
 
   const one = await createProperty(sunrise._id, 'Sunrise Koramangala', 'Bengaluru', { floors: 3, roomsPerFloor: 5, sharing: 2 });
   const two = await createProperty(sunrise._id, 'Sunrise Indiranagar', 'Bengaluru', { floors: 2, roomsPerFloor: 5, sharing: 2 });
@@ -115,7 +113,6 @@ async function seed() {
 
   await Membership.create([
     { userId: owner._id, orgId: sunrise._id, role: 'owner' },
-    { userId: manager._id, orgId: sunrise._id, role: 'manager', propertyIds: [one.property._id] },
     { userId: owner2._id, orgId: lotus._id, role: 'owner' },
   ]);
 

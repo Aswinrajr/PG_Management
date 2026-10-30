@@ -51,6 +51,10 @@ Resolves conflicts and gaps found while reviewing docs 00–10. Where this doc d
 | D32 | Push | Web push through a service worker, plus Socket.IO for open tabs and the bell for history. |
 | D33 | Scaling chat | Socket.IO runs in the API process. Running 2 API instances needs the Redis adapter first. |
 
+| D34 | Roles | Three roles only: Super Admin (platform), Owner (tenant admin) and Resident. Manager, staff and support admin are removed, along with the Staff page and complaint assignment. Doc 01 §3 and doc 02 §6 are replaced. |
+| D35 | Owner approval | A new org starts as `pending`. The owner can enter business details, properties and documents, nothing else. Super Admin approval moves it to `trial` and starts the 14 days. Rejection keeps it pending with a reason, and the owner resubmits. This replaces ONB-4. |
+| D36 | Several PGs | One owner, one organization, many properties, switched from the top bar. Trial allows 5 properties and 100 beds. Further properties do not need fresh approval. |
+
 ## Build order changes to doc 07
 
 - Plans model and seed: moved from 2.8–2.9 to 1.3.

@@ -8,14 +8,12 @@ import { logger } from '../../lib/logger.js';
 import { sendPush } from '../../lib/push.js';
 import { emitToUser } from '../../lib/realtime.js';
 import { assertTransition, TICKET_TRANSITIONS } from '../../lib/transitions.js';
-import { assertPropertyAccess, clearTenantCache, propertyScope } from '../../middleware/auth.js';
+import { assertPropertyAccess, propertyScope } from '../../middleware/auth.js';
 import { Invoice, Payment } from '../billing/model.js';
 import { createInvoice } from '../billing/service.js';
-import { Membership, Organization } from '../orgs/model.js';
-import { assertPlanLimit } from '../orgs/plans.js';
+import { Organization } from '../orgs/model.js';
 import { Bed, Room } from '../properties/model.js';
 import { Stay } from '../stays/model.js';
-import { User } from '../users/model.js';
 import { ElectricityReading, Expense, Menu, Notice, Notification, Ticket } from './model.js';
 
 type Tenant = NonNullable<Request['tenant']>;
@@ -54,17 +52,12 @@ export function applyTicketStatus(ticket: InstanceType<typeof Ticket>, next: Tic
 export async function updateTicket(
   tenant: Tenant,
   id: string,
-  input: { status?: TicketStatus; assigneeUserId?: string | null; priority?: string; note?: string },
+  input: { status?: TicketStatus; priority?: string; note?: string },
   userId: string,
 ) {
   const ticket = await Ticket.findOne({ orgId: tenant.orgId, _id: id });
   if (!ticket) throw new AppError('NOT_FOUND', 'Complaint not found', 404);
   assertPropertyAccess(tenant, String(ticket.propertyId));
-  if (input.assigneeUserId !== undefined) {
-    if (!tenant.permissions.includes('ticket.assign')) throw new AppError('FORBIDDEN', 'You do not have permission to do this', 403);
-    ticket.set('assigneeUserId', input.assigneeUserId);
-    ticket.history.push({ at: new Date(), byUserId: new Types.ObjectId(userId), action: 'assigned' });
-  }
   if (input.priority) ticket.set('priority', input.priority);
   if (input.status && input.status !== ticket.status) applyTicketStatus(ticket, input.status, userId, input.note);
   else if (input.note) ticket.history.push({ at: new Date(), byUserId: new Types.ObjectId(userId), action: 'note', note: input.note });
@@ -76,47 +69,6 @@ export async function updateTicket(
 export async function saveMenu(tenant: Tenant, propertyId: string, weekStart: string, days: unknown[]) {
   assertPropertyAccess(tenant, propertyId);
   return Menu.findOneAndUpdate({ orgId: tenant.orgId, propertyId, weekStart }, { days }, { upsert: true, new: true });
-}
-
-export async function listStaff(tenant: Tenant) {
-  const memberships = await Membership.find({ orgId: tenant.orgId, role: { $in: ['owner', 'manager', 'staff'] }, status: { $ne: 'removed' } }).lean();
-  const users = await User.find({ _id: { $in: memberships.map((m) => m.userId) } }, { name: 1, phone: 1 }).lean();
-  return memberships.map((m) => {
-    const user = users.find((u) => String(u._id) === String(m.userId));
-    return { id: String(m._id), userId: String(m.userId), name: user?.name ?? '', phone: user?.phone, role: m.role, propertyIds: m.propertyIds.map(String), status: m.status };
-  });
-}
-
-export async function inviteStaff(tenant: Tenant, input: { phone: string; name: string; role: string; propertyIds: string[] }, invitedBy: string) {
-  const { orgId } = tenant;
-  await assertPlanLimit(orgId, 'staff', await Membership.countDocuments({ orgId, role: { $in: ['manager', 'staff'] }, status: { $ne: 'removed' } }), 1);
-  const user = await User.findOneAndUpdate({ phone: input.phone }, { $setOnInsert: { name: input.name } }, { upsert: true, new: true });
-  const membership = await Membership.findOneAndUpdate(
-    { userId: user._id, orgId, role: input.role },
-    { status: 'active', propertyIds: input.propertyIds, invitedBy },
-    { upsert: true, new: true },
-  );
-  await clearTenantCache(String(user._id), orgId);
-  return membership;
-}
-
-export async function updateStaff(tenant: Tenant, id: string, input: { role?: string; propertyIds?: string[] }) {
-  const membership = await Membership.findOne({ orgId: tenant.orgId, _id: id });
-  if (!membership) throw new AppError('NOT_FOUND', 'Team member not found', 404);
-  if (membership.role === 'owner') throw new AppError('CONFLICT', 'The owner cannot be changed here', 409);
-  membership.set(input);
-  await membership.save();
-  await clearTenantCache(String(membership.userId), tenant.orgId);
-  return membership;
-}
-
-export async function removeStaff(tenant: Tenant, id: string) {
-  const membership = await Membership.findOne({ orgId: tenant.orgId, _id: id });
-  if (!membership) throw new AppError('NOT_FOUND', 'Team member not found', 404);
-  if (membership.role === 'owner') throw new AppError('CONFLICT', 'The owner cannot be removed', 409);
-  membership.status = 'removed';
-  await membership.save();
-  await clearTenantCache(String(membership.userId), tenant.orgId);
 }
 
 /** D20: occupied and notice count as occupied; maintenance beds leave the denominator. */

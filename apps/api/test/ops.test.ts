@@ -15,7 +15,7 @@ import { AuditLog, Membership, Organization } from '../src/modules/orgs/model.js
 import { Property } from '../src/modules/properties/model.js';
 import { ResidentProfile, Stay } from '../src/modules/stays/model.js';
 import { User } from '../src/modules/users/model.js';
-import { api, app, login, nextPhone, ownerWithOrg, useTestDb } from './helpers.js';
+import { api, app, login, nextPhone, ownerWithOrg, pendingOwner, useTestDb } from './helpers.js';
 
 useTestDb();
 
@@ -50,10 +50,10 @@ async function residentSetup() {
   return { owner, client, base, property, stayId, resident, me: api(resident.token), bedId };
 }
 
-async function superAdmin(role: 'super' | 'support' = 'super') {
+async function superAdmin() {
   const secret = new Secret().base32;
   const email = `admin${randomBytes(3).toString('hex')}@roomora.in`;
-  await User.create({ phone: `9190000${Math.floor(10000 + Math.random() * 89999)}`, email, isSuperAdmin: true, adminRole: role, passwordHash: await hashPassword('correct-horse'), totpSecretEnc: encrypt(secret) });
+  await User.create({ phone: `9190000${Math.floor(10000 + Math.random() * 89999)}`, email, isSuperAdmin: true, passwordHash: await hashPassword('correct-horse'), totpSecretEnc: encrypt(secret) });
   const totp = new TOTP({ secret: Secret.fromBase32(secret), digits: 6, period: 30 }).generate();
   const res = await request(app).post('/api/v1/auth/admin/login').send({ email, password: 'correct-horse', totp }).expect(200);
   return api(res.body.data.accessToken);
@@ -203,7 +203,7 @@ describe('operations', () => {
     expect(occupancyPct({ total: 0, occupied: 0, notice: 0, maintenance: 0 })).toBe(0);
   });
 
-  it('builds the dashboard and hides net from managers (D18)', async () => {
+  it('builds the dashboard', async () => {
     const { client, base, owner } = await residentSetup();
     await client.post(`${base}/expenses`).send({ propertyId: (await Property.findOne({ orgId: owner.orgId }).lean())!._id.toString(), category: 'water', amountPaise: 5000, date: new Date() }).expect(201);
     const data = (await client.get(`${base}/dashboard`).expect(200)).body.data;
@@ -212,19 +212,6 @@ describe('operations', () => {
     expect(data.month.expensesPaise).toBe(5000);
     expect(data.collectionTrend).toHaveLength(6);
 
-    const manager = await login();
-    await Membership.create({ userId: manager.userId, orgId: owner.orgId, role: 'manager', propertyIds: [] });
-    const limited = (await api(manager.token).get(`${base}/dashboard`).expect(200)).body.data;
-    expect(limited.month.netPaise).toBeUndefined();
-    await api(manager.token).get(`${base}/reports/pnl?from=2026-01-01&to=2026-12-31`).expect(403);
-  });
-
-  it('lets staff see the dashboard but not billing (D18)', async () => {
-    const { base, owner } = await residentSetup();
-    const staff = await login();
-    await Membership.create({ userId: staff.userId, orgId: owner.orgId, role: 'staff', propertyIds: [] });
-    await api(staff.token).get(`${base}/dashboard`).expect(200);
-    await api(staff.token).get(`${base}/invoices`).expect(403);
   });
 
   it('splits electricity exactly and bills it once (D9)', async () => {
@@ -245,16 +232,6 @@ describe('operations', () => {
     await client.put(`${base}/properties/${property._id}/menus/2026-11-02`).send({ days }).expect(200);
     const res = await client.get(`${base}/properties/${property._id}/menus/2026-11-02`).expect(200);
     expect(res.body.data.days).toHaveLength(7);
-  });
-
-  it('invites staff, applies the role at once and removes them', async () => {
-    const { client, base } = await residentSetup();
-    const phone = nextPhone();
-    const member = (await client.post(`${base}/staff`).send({ phone, name: 'Ravi', role: 'staff' }).expect(201)).body.data;
-    const staff = await login(phone);
-    await api(staff.token).get(`${base}/tickets`).expect(200);
-    await client.delete(`${base}/staff/${member._id}`).expect(200);
-    await api(staff.token).get(`${base}/tickets`).expect(403);
   });
 
   it('downloads invoice and receipt PDFs', async () => {
@@ -304,19 +281,20 @@ describe('super admin', () => {
     await api(user.token).get('/admin/dashboard').expect(403);
   });
 
-  it('keeps support admins read-only', async () => {
-    const support = await superAdmin('support');
-    const a = await ownerWithOrg();
-    await support.get('/admin/orgs').expect(200);
-    await support.post(`/admin/orgs/${a.orgId}/status`).send({ status: 'suspended', reason: 'test' }).expect(403);
-  });
-
-  it('reviews KYC, then activates on a paid plan (D12)', async () => {
+  it('approves an owner, starts the trial and tells them (D35)', async () => {
     const admin = await superAdmin();
-    const a = await ownerWithOrg();
+    const a = await pendingOwner();
+    await admin.post(`/admin/orgs/${a.orgId}/status`).send({ status: 'active', reason: 'skip review' }).expect(409);
     await api(a.token).put(`/org/${a.orgId}/kyc`).send({ docs: [{ type: 'owner_id', key: 'k' }] }).expect(200);
     await admin.post(`/admin/orgs/${a.orgId}/kyc`).send({ decision: 'reject' }).expect(400);
+    await admin.post(`/admin/orgs/${a.orgId}/kyc`).send({ decision: 'reject', reason: 'Blurry photo' }).expect(200);
+    expect((await Organization.findById(a.orgId).lean())!.status).toBe('pending');
+    await api(a.token).put(`/org/${a.orgId}/kyc`).send({ docs: [{ type: 'owner_id', key: 'k2' }] }).expect(200);
     await admin.post(`/admin/orgs/${a.orgId}/kyc`).send({ decision: 'approve' }).expect(200);
+    const org = (await Organization.findById(a.orgId).lean())!;
+    expect(org.status).toBe('trial');
+    expect(org.trialEndsAt!.getTime()).toBeGreaterThan(Date.now());
+    expect(await Notification.countDocuments({ userId: a.userId, title: 'Your account is approved' })).toBe(1);
     await admin.post(`/admin/orgs/${a.orgId}/subscription`).send({ planCode: 'starter' }).expect(200);
     expect((await Organization.findById(a.orgId).lean())!.status).toBe('active');
   });

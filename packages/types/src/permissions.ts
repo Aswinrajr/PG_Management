@@ -9,24 +9,16 @@ export const PERMISSIONS = [
   'invoice.read', 'invoice.create', 'invoice.update', 'invoice.void',
   'payment.read', 'payment.create', 'payment.refund',
   'expense.read', 'expense.write',
-  'ticket.read', 'ticket.write', 'ticket.assign',
+  'ticket.read', 'ticket.write',
   'notice.read', 'notice.write',
   'menu.read', 'menu.write',
   'report.read', 'report.financial',
-  'staff.read', 'staff.write',
   'settings.read', 'settings.write',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
 
-const MANAGER_DENIED: Permission[] = ['org.billing', 'report.financial', 'staff.write', 'property.delete', 'settings.write'];
-
 export const ROLE_PERMISSIONS: Record<Role, readonly Permission[]> = {
   owner: PERMISSIONS,
-  manager: PERMISSIONS.filter((p) => !MANAGER_DENIED.includes(p)),
-  staff: [
-    'property.read', 'room.read', 'bed.read', 'resident.read', 'ticket.read', 'ticket.write',
-    'notice.read', 'menu.read', 'menu.write', 'report.read',
-  ],
   resident: [],
 };
