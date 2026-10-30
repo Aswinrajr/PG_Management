@@ -1,4 +1,4 @@
-import { model, Schema, Types } from 'mongoose';
+import { model, Schema } from 'mongoose';
 
 const userSchema = new Schema(
   {
@@ -21,7 +21,7 @@ export const User = model('User', userSchema);
 
 const sessionSchema = new Schema(
   {
-    userId: { type: Types.ObjectId, required: true, index: true },
+    userId: { type: Schema.Types.ObjectId, required: true, index: true },
     tokenHash: { type: String, required: true, unique: true },
     familyId: { type: String, required: true, index: true },
     userAgent: String,
@@ -37,7 +37,7 @@ export const Session = model('Session', sessionSchema);
 
 const consentSchema = new Schema(
   {
-    userId: { type: Types.ObjectId, required: true, index: true },
+    userId: { type: Schema.Types.ObjectId, required: true, index: true },
     purpose: { type: String, required: true },
     version: { type: String, required: true },
     ip: String,

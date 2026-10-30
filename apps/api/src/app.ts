@@ -7,7 +7,10 @@ import { dbReady } from './lib/db.js';
 import { kv } from './lib/kv.js';
 import { errorHandler, notFound, rateLimit, rejectUnsafeKeys, requestId } from './middleware/core.js';
 import { authRoutes } from './modules/auth/routes.js';
+import { billingRoutes } from './modules/billing/routes.js';
 import { orgCreateRoutes, tenantRouter } from './modules/orgs/routes.js';
+import { propertyRoutes } from './modules/properties/routes.js';
+import { inviteRoutes, stayRoutes } from './modules/stays/routes.js';
 
 export function createApp(): Express {
   const app = express();
@@ -28,6 +31,8 @@ export function createApp(): Express {
   app.use('/api/v1', rateLimit('api', 600, 60));
   app.use('/api/v1/auth', authRoutes);
   app.use('/api/v1/orgs', orgCreateRoutes);
+  app.use('/api/v1/invites', inviteRoutes);
+  tenantRouter.use(propertyRoutes, stayRoutes, billingRoutes);
   app.use('/api/v1/org/:orgId', tenantRouter);
   app.use(notFound);
   app.use(errorHandler);

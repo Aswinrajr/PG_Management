@@ -35,6 +35,16 @@ Resolves conflicts and gaps found while reviewing docs 00–10. Where this doc d
 | D22 | Status colours | Status text and badges use the darker `*Text` tokens, which meet 4.5:1. The original colours stay for fills and icons. |
 | D23 | Phase names | Doc 00's numbering is canonical: 0–3 web, 4 mobile, 5 3D planner. "Phase 2" in doc 08 and "phase 3" in docs 03 and 09 are read as 4 and 5. |
 
+## Added while building
+
+| # | Topic | Decision |
+| --- | --- | --- |
+| D24 | Stay activation | Owner KYC approval activates a stay (docs 01 and 04). The "first payment" condition in doc 03 is dropped; the deposit invoice stays open and shows in dues. |
+| D25 | Dues at checkout | Deductions become a settlement invoice. The paid deposit then clears open invoices through a `deposit_adjustment` payment. What remains is refunded, or stays open as dues. |
+| D26 | Payment idempotency | `Idempotency-Key` is stored on the payment with a unique index, not in Redis, so it survives restarts and has no 24 h gap. |
+| D27 | Exit month | No automatic refund of unused days in the exit month. The owner settles it manually. Revisit after the pilot. |
+| D28 | GST exemption check | The ≥ 90 day condition in D2 cannot be known when billing, so exemption is decided by the rent threshold alone. The CA must confirm this. |
+
 ## Build order changes to doc 07
 
 - Plans model and seed: moved from 2.8–2.9 to 1.3.

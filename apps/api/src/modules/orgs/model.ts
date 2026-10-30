@@ -1,5 +1,5 @@
 import { KYC_STATUSES, MEMBERSHIP_STATUSES, ORG_STATUSES, ORG_TYPES, ROLES } from '@roomora/types';
-import { model, Schema, Types } from 'mongoose';
+import { model, Schema } from 'mongoose';
 
 const orgSchema = new Schema(
   {
@@ -8,7 +8,7 @@ const orgSchema = new Schema(
     type: { type: String, enum: ORG_TYPES, required: true },
     city: String,
     state: String,
-    ownerUserId: { type: Types.ObjectId, required: true },
+    ownerUserId: { type: Schema.Types.ObjectId, required: true },
     gstin: String,
     gstEnabled: { type: Boolean, default: false },
     legalName: String,
@@ -17,11 +17,11 @@ const orgSchema = new Schema(
       status: { type: String, enum: KYC_STATUSES, default: 'not_submitted' },
       docs: [{ _id: false, type: { type: String }, key: String }],
       rejectionReason: String,
-      reviewedBy: Types.ObjectId,
+      reviewedBy: Schema.Types.ObjectId,
       reviewedAt: Date,
     },
     status: { type: String, enum: ORG_STATUSES, default: 'trial' },
-    planId: { type: Types.ObjectId, required: true },
+    planId: { type: Schema.Types.ObjectId, required: true },
     trialEndsAt: Date,
     receiptSeq: { type: Number, default: 0 },
     invoiceSeq: { type: Number, default: 0 },
@@ -44,12 +44,12 @@ export const Organization = model('Organization', orgSchema);
 
 const membershipSchema = new Schema(
   {
-    userId: { type: Types.ObjectId, required: true, index: true },
-    orgId: { type: Types.ObjectId, required: true, index: true },
+    userId: { type: Schema.Types.ObjectId, required: true, index: true },
+    orgId: { type: Schema.Types.ObjectId, required: true, index: true },
     role: { type: String, enum: ROLES, required: true },
-    propertyIds: [{ type: Types.ObjectId }],
+    propertyIds: [{ type: Schema.Types.ObjectId }],
     status: { type: String, enum: MEMBERSHIP_STATUSES, default: 'active' },
-    invitedBy: Types.ObjectId,
+    invitedBy: Schema.Types.ObjectId,
   },
   { timestamps: true },
 );
@@ -75,12 +75,12 @@ export const Plan = model('Plan', planSchema);
 
 const auditSchema = new Schema(
   {
-    actorUserId: Types.ObjectId,
-    impersonatedBy: Types.ObjectId,
-    orgId: Types.ObjectId,
+    actorUserId: Schema.Types.ObjectId,
+    impersonatedBy: Schema.Types.ObjectId,
+    orgId: Schema.Types.ObjectId,
     action: { type: String, required: true },
     targetType: String,
-    targetId: Types.ObjectId,
+    targetId: Schema.Types.ObjectId,
     meta: Schema.Types.Mixed,
     ip: String,
   },
