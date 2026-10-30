@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { pageMeta } from '../../lib/pagination.js';
 import { assertPropertyAccess, requirePermission } from '../../middleware/auth.js';
 import { validate } from '../../middleware/core.js';
+import { invoicePdf, receiptPdf } from './pdf.js';
 import * as service from './service.js';
 
 const IdParams = z.object({ id: zObjectId });
@@ -32,6 +33,14 @@ billingRoutes.get('/invoices/:id', requirePermission('invoice.read'), validate({
 });
 billingRoutes.post('/invoices/:id/void', requirePermission('invoice.void'), validate({ params: IdParams, body: VoidInvoiceBody }), async (req, res) => {
   res.json({ success: true, data: await service.voidInvoice(req.tenant!, req.valid.params.id, req.valid.body.reason, req.auth!.userId) });
+});
+billingRoutes.get('/invoices/:id/pdf', requirePermission('invoice.read'), validate({ params: IdParams }), async (req, res) => {
+  const { filename, data } = await invoicePdf(req.tenant!, req.valid.params.id);
+  res.type('application/pdf').attachment(filename).send(data);
+});
+billingRoutes.get('/payments/:id/receipt', requirePermission('payment.read'), validate({ params: IdParams }), async (req, res) => {
+  const { filename, data } = await receiptPdf(req.tenant!, req.valid.params.id);
+  res.type('application/pdf').attachment(filename).send(data);
 });
 billingRoutes.get('/dues', requirePermission('invoice.read'), async (req, res) => {
   res.json({ success: true, data: await service.getDues(req.tenant!) });

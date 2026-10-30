@@ -33,7 +33,7 @@ export async function sendOtp(phone: string) {
   return { resendInSec: RESEND_SEC };
 }
 
-async function checkOtp(phone: string, code: string) {
+export async function checkOtp(phone: string, code: string) {
   const stored = await kv.get(`otp:${phone}`);
   if (!stored) throw new AppError('UNAUTHORIZED', 'OTP expired or incorrect', 401);
   const attempts = await kv.incr(`otp:attempts:${phone}`, OTP_TTL_SEC);
