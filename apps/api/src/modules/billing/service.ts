@@ -7,6 +7,7 @@ import { AppError } from '../../lib/errors.js';
 import { assertTransition, INVOICE_TRANSITIONS } from '../../lib/transitions.js';
 import { assertPropertyAccess, propertyScope } from '../../middleware/auth.js';
 import { Organization } from '../orgs/model.js';
+import { Notification } from '../ops/model.js';
 import { audit } from '../orgs/service.js';
 import { Property } from '../properties/model.js';
 import { Stay } from '../stays/model.js';
@@ -204,6 +205,15 @@ export async function voidInvoice(tenant: Tenant, id: string, reason: string, ac
   await invoice.save();
   await audit({ actorUserId, orgId: tenant.orgId, action: 'invoice.void', targetType: 'invoice', targetId: invoice._id, meta: { reason } });
   return invoice;
+}
+
+export async function remindInvoice(tenant: Tenant, id: string) {
+  const invoice = await getInvoice(tenant, id);
+  if (invoice.balancePaise <= 0) throw new AppError('CONFLICT', 'Nothing is due on this invoice', 409);
+  await Notification.create({ userId: invoice.residentUserId, orgId: tenant.orgId, title: 'Rent reminder', body: `${invoice.number} has a balance due`, link: '/me/payments' });
+  invoice.remindersSent.push({ at: new Date(), channel: 'inapp' });
+  await invoice.save();
+  return { sent: true };
 }
 
 export const openInvoices = (orgId: string, stayId: unknown, session?: Session) =>

@@ -42,6 +42,9 @@ billingRoutes.get('/payments/:id/receipt', requirePermission('payment.read'), va
   const { filename, data } = await receiptPdf(req.tenant!, req.valid.params.id);
   res.type('application/pdf').attachment(filename).send(data);
 });
+billingRoutes.post('/invoices/:id/remind', requirePermission('invoice.read'), validate({ params: IdParams }), async (req, res) => {
+  res.json({ success: true, data: await service.remindInvoice(req.tenant!, req.valid.params.id) });
+});
 billingRoutes.get('/dues', requirePermission('invoice.read'), async (req, res) => {
   res.json({ success: true, data: await service.getDues(req.tenant!) });
 });

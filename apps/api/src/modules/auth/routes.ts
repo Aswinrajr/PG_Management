@@ -4,6 +4,7 @@ import { env } from '../../config/env.js';
 import { AppError } from '../../lib/errors.js';
 import { requireAuth } from '../../middleware/auth.js';
 import { rateLimit, validate } from '../../middleware/core.js';
+import { Notification } from '../ops/model.js';
 import { User } from '../users/model.js';
 import { loadMemberships, logout, publicUser, refresh, sendOtp, verifyOtp } from './service.js';
 
@@ -55,4 +56,18 @@ authRoutes.get('/me', requireAuth, async (req, res) => {
 authRoutes.patch('/me', requireAuth, validate({ body: UpdateMeBody }), async (req, res) => {
   const user = await User.findByIdAndUpdate(req.auth!.userId, req.valid.body, { new: true }).lean();
   res.json({ success: true, data: publicUser(user!) });
+});
+
+authRoutes.get('/notifications', requireAuth, async (req, res) => {
+  const userId = req.auth!.userId;
+  const [items, unread] = await Promise.all([
+    Notification.find({ userId }).sort({ createdAt: -1 }).limit(30).lean(),
+    Notification.countDocuments({ userId, readAt: null }),
+  ]);
+  res.json({ success: true, data: { items, unread } });
+});
+
+authRoutes.post('/notifications/read', requireAuth, async (req, res) => {
+  await Notification.updateMany({ userId: req.auth!.userId, readAt: null }, { readAt: new Date() });
+  res.json({ success: true, data: {} });
 });

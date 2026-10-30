@@ -103,3 +103,5 @@ export const PlanBody = z.object({
   sortOrder: z.number().int().default(0),
 });
 export const BroadcastBody = z.object({ title: z.string().trim().min(2).max(120), body: z.string().trim().min(1).max(5000) });
+
+export const ConnectRazorpayBody = z.object({ keyId: z.string().min(5), keySecret: z.string().min(5), webhookSecret: z.string().min(5) });
