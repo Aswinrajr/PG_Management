@@ -17,11 +17,21 @@ test('owner designs a room and adds a machine; resident sees both', async ({ pag
   await page.getByRole('button', { name: 'Window' }).click();
 
   const bed = page.locator('[data-bed="A"]');
+  await bed.evaluate((el) => el.closest('svg')!.scrollIntoView({ block: 'center' }));
   const box = (await bed.boundingBox())!;
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
-  await page.mouse.down();
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 60, { steps: 5 });
-  await page.mouse.up();
+  const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
+  if (info.project.name === 'phone') {
+    const cdp = await page.context().newCDPSession(page);
+    const touch = (type: string, points: { x: number; y: number }[]) => cdp.send('Input.dispatchTouchEvent', { type: type as 'touchStart', touchPoints: points });
+    await touch('touchStart', [{ x, y }]);
+    for (const step of [15, 30, 45, 60]) await touch('touchMove', [{ x, y: y + step }]);
+    await touch('touchEnd', []);
+  } else {
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    await page.mouse.move(x, y + 60, { steps: 5 });
+    await page.mouse.up();
+  }
   await expect(bed).not.toHaveAttribute('transform', 'translate(0 0)');
   await page.getByRole('button', { name: 'Save design' }).click();
   await expect(page.getByText(/^Saved\./)).toBeVisible();
