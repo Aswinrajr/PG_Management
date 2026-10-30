@@ -13,13 +13,14 @@ test('owner designs a room and adds a machine; resident sees both', async ({ pag
   await page.goto('/app/bedmap');
   await page.getByRole('link', { name: /Design room/ }).first().click();
   await expect(page.getByRole('heading', { name: /Design room/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Auto-arrange beds' }).click(); // earlier runs saved a layout
   await page.getByRole('button', { name: 'Window' }).click();
 
   const bed = page.locator('[data-bed="A"]');
   const box = (await bed.boundingBox())!;
   await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
   await page.mouse.down();
-  await page.mouse.move(box.x + box.width / 2 + 40, box.y + box.height / 2 + 60, { steps: 5 });
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2 + 60, { steps: 5 });
   await page.mouse.up();
   await expect(bed).not.toHaveAttribute('transform', 'translate(0 0)');
   await page.getByRole('button', { name: 'Save design' }).click();
