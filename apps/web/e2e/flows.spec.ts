@@ -178,7 +178,11 @@ test('admin: console pages load and a new owner is approved', async ({ page, bro
   // The admin is told, and the notification opens this owner's review.
   await page.goto('/admin');
   await page.getByRole('button', { name: /^Notifications/ }).click();
-  await page.getByRole('button', { name: new RegExp(`New PG waiting for approval.*${orgName}`) }).click();
+  const alert = page.getByRole('button', { name: new RegExp(`New PG waiting for approval.*${orgName}.*View details`) });
+  await alert.hover();
+  await expect(alert).toHaveClass(/hover:bg-primary-soft/);
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/${info.project.name}-admin-alerts.png` });
+  await alert.click();
   await expect(page).toHaveURL(/\/admin\/kyc\?org=/);
   await expect(page.getByRole('link', { name: 'View on map' })).toBeVisible();
   await expect(page.getByText('Test Owner')).toBeVisible();

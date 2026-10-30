@@ -1,6 +1,6 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import { useQueryClient } from '@tanstack/react-query';
-import { Bell, LogOut, Menu as MenuIcon, Moon, ShieldAlert, Sun, X, type LucideIcon } from 'lucide-react';
+import { Bell, ChevronRight, LogOut, Menu as MenuIcon, Moon, ShieldAlert, Sun, X, type LucideIcon } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router';
@@ -78,24 +78,37 @@ function Notifications() {
       )}
       <Sheet open={open} onClose={() => setOpen(false)} title={t('Notifications')}>
         {query.data?.items.length ? (
-          <ul className="space-y-3">
-            {query.data.items.map((n) => (
-              <li key={n._id} className="border-b border-border pb-3">
-                <button
-                  type="button"
-                  disabled={!n.link}
-                  className="block w-full text-left"
-                  onClick={() => {
-                    setOpen(false);
-                    navigate(n.link!);
-                  }}
-                >
-                  <span className="block font-medium">{n.title}</span>
-                  <span className="block text-text-muted">{n.body}</span>
-                  <span className="block text-xs text-text-muted">{formatDate(n.createdAt)}</span>
-                </button>
-              </li>
-            ))}
+          <ul className="space-y-2">
+            {query.data.items.map((n) => {
+              const body = (
+                <>
+                  <span className="mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-soft text-primary"><Bell className="size-4" aria-hidden /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block font-medium">{n.title}</span>
+                    <span className="block text-text-muted">{n.body}</span>
+                    <span className="block text-xs text-text-muted">{formatDate(n.createdAt)}</span>
+                    {n.link && <span className="mt-1 inline-flex items-center gap-1 text-sm font-medium text-primary">{t('View details')} <ChevronRight className="size-4 transition-transform duration-150 group-hover:translate-x-0.5" aria-hidden /></span>}
+                  </span>
+                </>
+              );
+              const card = 'flex w-full gap-3 rounded-md border border-border p-3 text-left';
+              return (
+                <li key={n._id}>
+                  {n.link ? (
+                    <button
+                      type="button"
+                      className={cx(card, 'group cursor-pointer transition-colors duration-150 hover:border-primary hover:bg-primary-soft')}
+                      onClick={() => {
+                        setOpen(false);
+                        navigate(n.link!);
+                      }}
+                    >
+                      {body}
+                    </button>
+                  ) : <div className={card}>{body}</div>}
+                </li>
+              );
+            })}
           </ul>
         ) : <p className="text-text-muted">{t('Nothing new.')}</p>}
       </Sheet>
