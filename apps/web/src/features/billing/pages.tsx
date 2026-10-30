@@ -2,7 +2,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Clock, MessageCircle } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, Card, CardTitle, Confirm, DataList, EmptyState, Field, FormError, Input, Money, PageHeader, Pagination, Query, Select, Sheet, StatCard, StatusBadge } from '../../components/ui';
+import { Button, Card, CardTitle, Confirm, DataList, EmptyState, Field, FormError, Input, Money, PageHeader, Pagination, Query, Select, Sheet, StatCard, StatusBadge, Tabs, Textarea } from '../../components/ui';
 import { api, useGet, useGetPage, useSend } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { currentPeriod, formatDate, formatINR, formatPeriod, rupeesToPaise, todayInput } from '../../lib/format';
@@ -71,6 +71,79 @@ export function RecordPaymentSheet({ open, onClose, stayId, defaultPaise }: { op
         </form>
       )}
     </Sheet>
+  );
+}
+
+/** Marks a refund paid, or corrects the amount. Works again later if something was wrong. */
+export function RefundSheet({ open, onClose, stayId, settlement, maxPaise }: { open: boolean; onClose: () => void; stayId: string; settlement: any; maxPaise: number }) {
+  const { t } = useTranslation();
+  const { orgPath } = useAuth();
+  const [amount, setAmount] = useState(String((settlement.refundPaise ?? 0) / 100));
+  const [paid, setPaid] = useState(true);
+  const [mode, setMode] = useState(settlement.mode ?? 'upi');
+  const [reference, setReference] = useState(settlement.reference ?? '');
+  const [date, setDate] = useState(settlement.refundedAt ? new Date(settlement.refundedAt).toISOString().slice(0, 10) : todayInput());
+  const [note, setNote] = useState(settlement.note ?? '');
+  const save = useSend('put', orgPath(`/stays/${stayId}/refund`));
+  return (
+    <Sheet open={open} onClose={onClose} title={t('Refund')}>
+      <div className="space-y-3">
+        <Field label={t('Refund amount (₹)')} hint={t('Advance paid: {{amount}}', { amount: formatINR(maxPaise) })}><Input inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value)} /></Field>
+        <label className="flex min-h-11 items-center gap-2"><input type="checkbox" className="size-5" checked={paid} onChange={(e) => setPaid(e.target.checked)} /> {t('Paid to the resident')}</label>
+        {paid && (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <Field label={t('Paid by')}><Select value={mode} onChange={(e) => setMode(e.target.value)}><option value="upi">UPI</option><option value="cash">{t('Cash')}</option><option value="bank">{t('Bank')}</option></Select></Field>
+              <Field label={t('Date')}><Input type="date" value={date} onChange={(e) => setDate(e.target.value)} /></Field>
+            </div>
+            <Field label={t('Reference (optional)')}><Input value={reference} onChange={(e) => setReference(e.target.value)} /></Field>
+          </>
+        )}
+        <Field label={t('Note (optional)')}><Textarea rows={2} value={note} onChange={(e) => setNote(e.target.value)} /></Field>
+        <FormError error={save.error} />
+        <Button block loading={save.isPending} onClick={() => save.mutate({ amountPaise: rupeesToPaise(amount), paid, ...(paid && { mode, paidAt: new Date(date) }), ...(paid && reference && { reference }), ...(note && { note }) }, { onSuccess: onClose })}>{t('Save')}</Button>
+      </div>
+    </Sheet>
+  );
+}
+
+export function RefundsPage() {
+  const { t } = useTranslation();
+  const { orgPath } = useAuth();
+  const query = useGet<any[]>(orgPath('/refunds'));
+  const [tab, setTab] = useState<'pending' | 'paid'>('pending');
+  const [open, setOpen] = useState<any>(null);
+  return (
+    <>
+      <PageHeader title={t('Refunds')} subtitle={t('Advance to pay back after a resident leaves.')} />
+      <Tabs value={tab} onChange={setTab} tabs={[{ value: 'pending', label: t('To pay') }, { value: 'paid', label: t('Paid') }]} />
+      <Query query={query}>
+        {(rows) => {
+          const list = rows.filter((r) => Boolean(r.settlement.refundedAt) === (tab === 'paid'));
+          return list.length === 0 ? <EmptyState title={tab === 'paid' ? t('No refunds paid yet') : t('No refunds to pay')} /> : (
+            <DataList
+              rows={list}
+              rowKey={(r) => r.stayId}
+              onRow={setOpen}
+              columns={[
+                { header: t('Resident'), cell: (r) => <><p className="font-medium">{r.name}</p><p className="text-xs text-text-muted">{r.property}, {t('Room {{room}}, bed {{bed}}', { room: r.room, bed: r.bed })}</p></> },
+                { header: t('Left on'), cell: (r) => formatDate(r.exitDate) },
+                { header: t('Advance paid'), align: 'right', cell: (r) => <Money paise={r.depositPaidPaise} /> },
+                { header: t('Refund'), align: 'right', cell: (r) => <Money paise={r.settlement.refundPaise} /> },
+                { header: t('Paid on'), cell: (r) => (r.settlement.refundedAt ? `${formatDate(r.settlement.refundedAt)} · ${r.settlement.mode}` : t('Not paid')) },
+              ]}
+              mobile={(r) => (
+                <>
+                  <div className="flex justify-between gap-2"><span className="truncate font-medium">{r.name}</span><Money paise={r.settlement.refundPaise} /></div>
+                  <p className="text-xs text-text-muted">{r.settlement.refundedAt ? formatDate(r.settlement.refundedAt) : t('Left on {{date}}', { date: formatDate(r.exitDate) })}</p>
+                </>
+              )}
+            />
+          );
+        }}
+      </Query>
+      {open && <RefundSheet key={open.stayId} open onClose={() => setOpen(null)} stayId={open.stayId} settlement={open.settlement} maxPaise={open.depositPaidPaise} />}
+    </>
   );
 }
 

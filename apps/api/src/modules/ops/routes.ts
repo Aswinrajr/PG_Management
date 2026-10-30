@@ -48,7 +48,7 @@ opsRoutes.delete('/expenses/:id', requirePermission('expense.write'), validate({
   const expense = await Expense.findOne({ orgId: req.tenant!.orgId, _id: req.valid.params.id });
   if (!expense) throw new AppError('NOT_FOUND', 'Expense not found', 404);
   assertPropertyAccess(req.tenant!, String(expense.propertyId));
-  await expense.deleteOne();
+  await Expense.deleteOne({ orgId: req.tenant!.orgId, _id: expense._id });
   res.json({ success: true, data: {} });
 });
 

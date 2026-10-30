@@ -3,7 +3,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
-import { Button, Card, CardTitle, EmptyState, Field, FormError, Input, PageHeader, Query, Select, Tabs, Textarea } from '../../components/ui';
+import { Button, Card, CardTitle, Confirm, DataList, EmptyState, Field, FormError, Input, Money, PageHeader, Query, Select, Sheet, Tabs, Textarea } from '../../components/ui';
 import { useGet, useSend } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { formatINR, paiseToRupees, rupeesToPaise } from '../../lib/format';
@@ -127,6 +127,63 @@ interface Row {
   isAc: boolean;
   hasAttachedBath: boolean;
   rent: string;
+}
+
+function EditRoomSheet({ room, onClose }: { room: any; onClose: () => void }) {
+  const { t } = useTranslation();
+  const { orgPath } = useAuth();
+  const [form, setForm] = useState({ number: room.number, sharing: room.sharing, isAc: room.isAc, hasAttachedBath: room.hasAttachedBath, rent: room.rentPerBedPaise ? String(room.rentPerBedPaise / 100) : '', status: room.status ?? 'active' });
+  const [deleting, setDeleting] = useState(false);
+  const save = useSend('patch', orgPath(`/rooms/${room.id}`));
+  const remove = useSend('delete', orgPath(`/rooms/${room.id}`));
+  const { rent, ...rest } = form;
+  return (
+    <Sheet open onClose={onClose} title={t('Edit room {{number}}', { number: room.number })}>
+      <div className="space-y-3">
+        <div className="grid grid-cols-2 gap-2">
+          <Field label={t('Room no.')}><Input value={form.number} onChange={(e) => setForm({ ...form, number: e.target.value })} /></Field>
+          <Field label={t('Sharing')} hint={t('Adds or removes beds.')}><Select value={form.sharing} onChange={(e) => setForm({ ...form, sharing: Number(e.target.value) })}>{[1, 2, 3, 4].map((n) => <option key={n}>{n}</option>)}</Select></Field>
+        </div>
+        <Field label={t('Rent/bed (₹)')}><Input inputMode="numeric" placeholder={t('From rent rules')} value={form.rent} onChange={(e) => setForm({ ...form, rent: e.target.value })} /></Field>
+        <label className="flex min-h-11 items-center gap-2"><input type="checkbox" className="size-5" checked={form.isAc} onChange={(e) => setForm({ ...form, isAc: e.target.checked })} /> {t('AC')}</label>
+        <label className="flex min-h-11 items-center gap-2"><input type="checkbox" className="size-5" checked={form.hasAttachedBath} onChange={(e) => setForm({ ...form, hasAttachedBath: e.target.checked })} /> {t('Attached bath')}</label>
+        <label className="flex min-h-11 items-center gap-2"><input type="checkbox" className="size-5" checked={form.status === 'inactive'} onChange={(e) => setForm({ ...form, status: e.target.checked ? 'inactive' : 'active' })} /> {t('Room not in use')}</label>
+        <FormError error={save.error ?? remove.error} />
+        <Button block loading={save.isPending} onClick={() => save.mutate({ ...rest, ...(rent && { rentPerBedPaise: rupeesToPaise(rent) }) }, { onSuccess: onClose })}>{t('Save')}</Button>
+        <Button variant="ghost" block onClick={() => setDeleting(true)}>{t('Delete room')}</Button>
+      </div>
+      <Confirm open={deleting} onClose={() => setDeleting(false)} title={t('Delete room')} text={t('The room and its beds will be removed.')} action={t('Delete room')} loading={remove.isPending} error={remove.error} onConfirm={() => remove.mutate(undefined, { onSuccess: onClose })} />
+    </Sheet>
+  );
+}
+
+function ExistingRooms({ propertyId }: { propertyId: string }) {
+  const { t } = useTranslation();
+  const { orgPath } = useAuth();
+  const query = useGet<any>(orgPath(`/properties/${propertyId}/bedmap`));
+  const [editing, setEditing] = useState<any>(null);
+  const rooms = (query.data?.floors ?? []).flatMap((f: any) => f.rooms.map((r: any) => ({ ...r, floor: f.label })));
+  if (!rooms.length) return null;
+  return (
+    <div>
+      <h2 className="mb-2 font-semibold">{t('{{count}} rooms', { count: rooms.length })}</h2>
+      <DataList
+        rows={rooms as any[]}
+        rowKey={(r) => r.id}
+        onRow={setEditing}
+        columns={[
+          { header: t('Room no.'), cell: (r) => r.number },
+          { header: t('Floor'), cell: (r) => r.floor },
+          { header: t('Beds'), cell: (r) => r.beds.length },
+          { header: t('AC'), cell: (r) => (r.isAc ? t('Yes') : t('No')) },
+          { header: t('Rent/bed (₹)'), cell: (r) => (r.rentPerBedPaise ? <Money paise={r.rentPerBedPaise} /> : t('From rent rules')) },
+          { header: '', align: 'right', cell: () => <span className="font-medium text-primary">{t('Edit')}</span> },
+        ]}
+        mobile={(r) => <div className="flex justify-between gap-2"><span className="font-medium">{r.number}</span><span className="text-text-muted">{t('{{count}} beds', { count: r.beds.length })}</span></div>}
+      />
+      {editing && <EditRoomSheet key={editing.id} room={editing} onClose={() => setEditing(null)} />}
+    </div>
+  );
 }
 
 export function RoomsGrid({ propertyId, onDone }: { propertyId: string; onDone?: () => void }) {
@@ -259,7 +316,7 @@ export function RentRulesForm({ propertyId, rules }: { propertyId: string; rules
         {(['1', '2', '3', '4'] as const).map((n) => <Field key={n} label={t('{{n}}-sharing rent (₹)', { n })}><Input inputMode="numeric" {...bind(`rent${n}`)} /></Field>)}
       </div>
       <div className="grid gap-3 md:grid-cols-2">
-        <Field label={t('Deposit (months of rent)')}><Input inputMode="decimal" {...bind('depositMonths')} /></Field>
+        <Field label={t('Advance (months of rent)')}><Input inputMode="decimal" {...bind('depositMonths')} /></Field>
         <Field label={t('Rent due day (1–28)')}><Input type="number" min={1} max={28} {...bind('dueDay')} /></Field>
         <Field label={t('Grace days')}><Input type="number" min={0} {...bind('graceDays')} /></Field>
         <Field label={t('Notice period (days)')}><Input type="number" min={0} {...bind('noticeDays')} /></Field>
@@ -353,7 +410,12 @@ export function PropertyDetailPage() {
             </Card>
           )}
           {tab === 'location' && <Card><LocationTab property={property} /></Card>}
-          {tab === 'rooms' && <Card><CardTitle>{t('Add rooms')}</CardTitle><RoomsGrid propertyId={property._id} /></Card>}
+          {tab === 'rooms' && (
+            <div className="space-y-4">
+              <ExistingRooms propertyId={property._id} />
+              <Card><CardTitle>{t('Add rooms')}</CardTitle><RoomsGrid propertyId={property._id} /></Card>
+            </div>
+          )}
           {tab === 'rules' && <Card><RentRulesForm propertyId={property._id} rules={property.rentRules} /></Card>}
           {tab === 'invite' && (
             <Card className="max-w-md">

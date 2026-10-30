@@ -71,6 +71,7 @@ export const BulkRoomsBody = z.object({
     .max(500),
 });
 export const UpdateRoomBody = z.object({
+  sharing: z.number().int().min(1).max(4).optional(),
   number: z.string().trim().min(1).max(10).optional(),
   isAc: z.boolean().optional(),
   hasAttachedBath: z.boolean().optional(),
@@ -103,7 +104,15 @@ export const CreateStayBody = z.object({
   occupation: z.enum(['student', 'working', 'other']).optional(),
   sendInvite: z.boolean().default(true),
 });
-export const UpdateStayBody = z.object({ rentPaise: zAmount.optional(), recurringCharges: z.array(ChargeLine).optional() });
+export const UpdateStayBody = z.object({ rentPaise: zAmount.optional(), depositPaise: zPaise.optional(), recurringCharges: z.array(ChargeLine).optional() });
+export const RefundBody = z.object({
+  amountPaise: zPaise,
+  paid: z.boolean(),
+  mode: z.enum(['cash', 'upi', 'bank']).optional(),
+  reference: z.string().trim().max(100).optional(),
+  paidAt: zDate.optional(),
+  note: z.string().trim().max(300).optional(),
+});
 export const VerifyKycBody = z.object({ approve: z.boolean(), reason: z.string().max(300).optional() });
 export const NoticeBody = z.object({ expectedExitDate: zDate.optional() });
 export const MoveBody = z.object({ toBedId: zObjectId, effectiveDate: zDate, newRentPaise: zAmount.optional() });

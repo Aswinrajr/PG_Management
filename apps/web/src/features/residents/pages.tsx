@@ -8,7 +8,7 @@ import { useGet, useGetPage, useSend } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { displayPhone, formatDate, formatINR, formatPeriod, paiseToRupees, rupeesToPaise, todayInput } from '../../lib/format';
 import { useProperties, usePropertyFilter } from '../../lib/property';
-import { RecordPaymentSheet } from '../billing/pages';
+import { RecordPaymentSheet, RefundSheet } from '../billing/pages';
 
 interface ResidentRow {
   stayId: string;
@@ -235,7 +235,7 @@ export function AddResidentPage() {
           <div className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
               <Field label={t('Monthly rent (₹)')}><Input inputMode="numeric" value={rent || paiseToRupees(suggestedRent)} onChange={(e) => setRent(e.target.value)} /></Field>
-              <Field label={t('Deposit (₹)')}><Input inputMode="numeric" value={deposit || paiseToRupees(suggestedDeposit)} onChange={(e) => setDeposit(e.target.value)} /></Field>
+              <Field label={t('Advance (₹)')}><Input inputMode="numeric" value={deposit || paiseToRupees(suggestedDeposit)} onChange={(e) => setDeposit(e.target.value)} /></Field>
             </div>
             <p className="rounded-sm bg-primary-soft p-3 text-sm">{t('First month: {{amount}} from {{date}}.', { amount: formatINR(firstMonth), date: formatDate(joinDate) })}</p>
           </div>
@@ -248,7 +248,7 @@ export function AddResidentPage() {
               <dt className="text-text-muted">{t('Bed')}</dt><dd>{bed?.room.number} · {bed?.label}</dd>
               <dt className="text-text-muted">{t('Rent')}</dt><dd><Money paise={rentPaise} /></dd>
               {Boolean(bed?.premiumPaise) && <><dt className="text-text-muted">{t('Bed premium')}</dt><dd><Money paise={bed!.premiumPaise} /></dd></>}
-              <dt className="text-text-muted">{t('Deposit')}</dt><dd><Money paise={depositPaise} /></dd>
+              <dt className="text-text-muted">{t('Advance')}</dt><dd><Money paise={depositPaise} /></dd>
               <dt className="text-text-muted">{t('Joining')}</dt><dd>{formatDate(joinDate)}</dd>
             </dl>
             {problems.map((p) => <p key={p} role="alert" className="text-sm text-danger-text">{p}</p>)}
@@ -291,7 +291,7 @@ function CheckoutSheet({ stayId, open, onClose }: { stayId: string; open: boolea
         {summary && (
           <Card>
             <dl className="grid grid-cols-2 gap-1 text-sm">
-              <dt>{t('Deposit paid')}</dt><dd className="text-right"><Money paise={summary.depositPaidPaise} /></dd>
+              <dt>{t('Advance paid')}</dt><dd className="text-right"><Money paise={summary.depositPaidPaise} /></dd>
               <dt>{t('Dues')}</dt><dd className="text-right"><Money paise={summary.duesPaise} /></dd>
               <dt>{t('Deductions')}</dt><dd className="text-right"><Money paise={summary.deductionsPaise} /></dd>
               <dt className="font-semibold">{summary.refundPaise >= 0 ? t('Refund to resident') : t('Resident still owes')}</dt>
@@ -300,6 +300,24 @@ function CheckoutSheet({ stayId, open, onClose }: { stayId: string; open: boolea
             <Button block className="mt-3" variant="danger" disabled={!checks.keys || !checks.room} loading={confirm.isPending} onClick={() => confirm.mutate(body, { onSuccess: onClose })}>{t('Confirm check-out')}</Button>
           </Card>
         )}
+      </div>
+    </Sheet>
+  );
+}
+
+function EditStaySheet({ stay, onClose }: { stay: any; onClose: () => void }) {
+  const { t } = useTranslation();
+  const { orgPath } = useAuth();
+  const [rent, setRent] = useState(String(paiseToRupees(stay.rentPaise)));
+  const [advance, setAdvance] = useState(String(paiseToRupees(stay.depositPaise)));
+  const save = useSend('patch', orgPath(`/stays/${stay._id}`));
+  return (
+    <Sheet open onClose={onClose} title={t('Edit stay')}>
+      <div className="space-y-3">
+        <Field label={t('Monthly rent (₹)')} hint={t('Applies to the next invoice.')}><Input inputMode="decimal" value={rent} onChange={(e) => setRent(e.target.value)} /></Field>
+        <Field label={t('Advance (₹)')} hint={t('Paid so far: {{amount}}', { amount: formatINR(stay.depositPaidPaise) })}><Input inputMode="decimal" value={advance} onChange={(e) => setAdvance(e.target.value)} /></Field>
+        <FormError error={save.error} />
+        <Button block loading={save.isPending} onClick={() => save.mutate({ rentPaise: rupeesToPaise(rent), depositPaise: rupeesToPaise(advance) }, { onSuccess: onClose })}>{t('Save')}</Button>
       </div>
     </Sheet>
   );
@@ -340,7 +358,7 @@ export function ResidentDetailPage() {
   const { stayId } = useParams();
   const { orgPath } = useAuth();
   const [tab, setTab] = useState<'overview' | 'kyc' | 'invoices' | 'payments'>('overview');
-  const [sheet, setSheet] = useState<'pay' | 'checkout' | 'notice' | 'cancel' | null>(null);
+  const [sheet, setSheet] = useState<'pay' | 'checkout' | 'notice' | 'cancel' | 'edit' | 'refund' | null>(null);
   const query = useGet<any>(orgPath(`/stays/${stayId}`));
   const notice = useSend('post', orgPath(`/stays/${stayId}/notice`));
   const cancel = useSend('post', orgPath(`/stays/${stayId}/cancel`));
@@ -383,15 +401,24 @@ export function ResidentDetailPage() {
             />
             {tab === 'overview' && (
               <Card>
-                <CardTitle>{t('Stay details')}</CardTitle>
+                <CardTitle action={['booked', 'active', 'notice'].includes(stay.status) && <Button variant="secondary" onClick={() => setSheet('edit')}>{t('Edit')}</Button>}>{t('Stay details')}</CardTitle>
                 <dl className="grid gap-2 text-sm sm:grid-cols-2">
                   <div><dt className="text-text-muted">{t('Joined')}</dt><dd>{formatDate(stay.joinDate)}</dd></div>
                   <div><dt className="text-text-muted">{t('Rent')}</dt><dd><Money paise={stay.rentPaise} /></dd></div>
                   <div><dt className="text-text-muted">{t('Bed premium')}</dt><dd><Money paise={stay.premiumPaise} /></dd></div>
-                  <div><dt className="text-text-muted">{t('Deposit')}</dt><dd><Money paise={stay.depositPaidPaise} /> / <Money paise={stay.depositPaise} /></dd></div>
+                  <div><dt className="text-text-muted">{t('Advance')}</dt><dd><Money paise={stay.depositPaidPaise} /> / <Money paise={stay.depositPaise} /></dd></div>
                   {stay.expectedExitDate && <div><dt className="text-text-muted">{t('Expected exit')}</dt><dd>{formatDate(stay.expectedExitDate)}</dd></div>}
-                  {stay.settlement?.refundPaise !== undefined && <div><dt className="text-text-muted">{t('Settlement')}</dt><dd><Money paise={stay.settlement.refundPaise} /></dd></div>}
                 </dl>
+                {stay.settlement?.refundPaise !== undefined && (
+                  <div className="mt-4 rounded-md border border-border p-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-semibold">{stay.settlement.refundPaise < 0 ? t('Resident still owes') : t('Refund')}: <Money paise={Math.abs(stay.settlement.refundPaise)} /></p>
+                      {stay.settlement.refundPaise > 0 && <Button variant={stay.settlement.refundedAt ? 'secondary' : 'primary'} onClick={() => setSheet('refund')}>{stay.settlement.refundedAt ? t('Edit refund') : t('Mark refund paid')}</Button>}
+                    </div>
+                    {stay.settlement.refundedAt && <p className="text-sm text-success-text">{t('Paid on {{date}} by {{mode}}', { date: formatDate(stay.settlement.refundedAt), mode: stay.settlement.mode })}{stay.settlement.reference ? ` · ${stay.settlement.reference}` : ''}</p>}
+                    {stay.settlement.note && <p className="text-sm text-text-muted">{stay.settlement.note}</p>}
+                  </div>
+                )}
               </Card>
             )}
             {tab === 'kyc' && profile && <KycTab stayId={stay._id} profile={profile} />}
@@ -424,6 +451,8 @@ export function ResidentDetailPage() {
                 />
               ) : <EmptyState title={t('No payments yet')} />
             )}
+            {sheet === 'edit' && <EditStaySheet stay={stay} onClose={() => setSheet(null)} />}
+            {sheet === 'refund' && <RefundSheet open onClose={() => setSheet(null)} stayId={stay._id} settlement={stay.settlement} maxPaise={stay.depositPaidPaise} />}
             <RecordPaymentSheet open={sheet === 'pay'} onClose={() => setSheet(null)} stayId={stay._id} />
             <CheckoutSheet open={sheet === 'checkout'} onClose={() => setSheet(null)} stayId={stay._id} />
             <Confirm open={sheet === 'notice'} onClose={() => setSheet(null)} title={t('Give notice')} text={t('The exit date is set from the notice period in the rent rules.')} action={t('Give notice')} loading={notice.isPending} error={notice.error} onConfirm={() => notice.mutate({}, { onSuccess: () => setSheet(null) })} />

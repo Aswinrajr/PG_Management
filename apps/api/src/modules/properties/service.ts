@@ -145,6 +145,7 @@ export async function getBedmap(tenant: Tenant, propertyId: string) {
           isAc: room.isAc,
           hasAttachedBath: room.hasAttachedBath,
           rentPerBedPaise: room.rentPerBedPaise,
+          status: room.status,
           beds: beds.filter((b) => String(b.roomId) === String(room._id)).map(bedDto),
         })),
     })),
@@ -160,8 +161,35 @@ export async function updateRoom(tenant: Tenant, id: string, input: { status?: s
   if (input.status === 'inactive' && (await Bed.exists({ orgId, roomId: id, status: { $in: LIVE_STATUSES } }))) {
     throw new AppError('CONFLICT', 'This room has residents, so it cannot be disabled', 409);
   }
+  if (input.sharing !== undefined && input.sharing !== room.sharing) await resizeRoom(tenant, room._id, input.sharing as number);
   room.set(input);
   return room.save();
+}
+
+/** Beds follow the sharing number. Only empty beds with no past residents can be removed. */
+async function resizeRoom(tenant: Tenant, roomId: Types.ObjectId, sharing: number) {
+  const { orgId } = tenant;
+  const beds = await Bed.find({ orgId, roomId }).sort({ label: 1 }).lean();
+  const room = await Room.findOne({ orgId, _id: roomId }).lean();
+  if (sharing > beds.length) {
+    await assertPlanLimit(orgId, 'beds', await Bed.countDocuments({ orgId }), sharing - beds.length);
+    await Bed.insertMany(LABELS.slice(beds.length, sharing).map((label) => ({ orgId, propertyId: room!.propertyId, roomId, label })));
+    return;
+  }
+  const extra = beds.slice(sharing);
+  const inUse = extra.some((b) => b.status !== 'vacant') || (await Stay.exists({ orgId, bedId: { $in: extra.map((b) => b._id) } }));
+  if (inUse) throw new AppError('CONFLICT', 'A bed in this room has or had a resident, so it cannot be removed', 409);
+  await Bed.deleteMany({ orgId, _id: { $in: extra.map((b) => b._id) } });
+}
+
+export async function deleteRoom(tenant: Tenant, id: string) {
+  const { orgId } = tenant;
+  const room = await Room.findOne({ orgId, _id: id });
+  if (!room) throw new AppError('NOT_FOUND', 'Room not found', 404);
+  assertPropertyAccess(tenant, String(room.propertyId));
+  if (await Stay.exists({ orgId, roomId: id })) throw new AppError('CONFLICT', 'This room has resident history. Mark it inactive instead.', 409);
+  await Bed.deleteMany({ orgId, roomId: id });
+  await Room.deleteOne({ orgId, _id: id });
 }
 
 export async function updateBed(tenant: Tenant, id: string, input: { status?: 'maintenance' | 'vacant'; tags?: string[]; premiumPaise?: number }) {

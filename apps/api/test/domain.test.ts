@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { istDate } from '../src/lib/dates.js';
 import { Invoice } from '../src/modules/billing/model.js';
 import { computeTax } from '../src/modules/billing/service.js';
-import { Membership, Organization } from '../src/modules/orgs/model.js';
+import { Notification } from '../src/modules/ops/model.js';
+import { AuditLog, Organization } from '../src/modules/orgs/model.js';
 import { Bed } from '../src/modules/properties/model.js';
 import { ResidentProfile, Stay } from '../src/modules/stays/model.js';
 import { sealIdNumber } from '../src/modules/stays/service.js';
@@ -294,6 +295,105 @@ describe('billing', () => {
     expect(done.body.data.settlement.refundPaise).toBe(-1103333);
     const open = (await invoicesOf(ctx, stayId)).reduce((sum, i) => sum + i.balancePaise, 0);
     expect(open).toBe(1103333);
+  });
+});
+
+describe('advance, refund and room edits', () => {
+  let ctx: Ctx;
+  beforeEach(async () => {
+    ctx = await setup();
+  });
+
+  const deposit = async (stayId: string) => (await invoicesOf(ctx, stayId)).find((i) => i.type === 'deposit')!;
+  async function checkedOut() {
+    const stayId = await activeStay(ctx, ctx.beds[0]!.id);
+    await pay(ctx, stayId, 850000 + 453333).expect(201);
+    await ctx.client.post(`${ctx.base}/stays/${stayId}/notice`).send({}).expect(200);
+    await ctx.client.post(`${ctx.base}/stays/${stayId}/checkout`).send({ exitDate: istDate(2026, 12, 30), deductions: [{ label: 'Chair', amountPaise: 100000 }] }).expect(200);
+    return stayId;
+  }
+
+  it('edits the advance and keeps its invoice in step', async () => {
+    const stayId = await activeStay(ctx, ctx.beds[0]!.id);
+    await ctx.client.patch(`${ctx.base}/stays/${stayId}`).send({ depositPaise: 1000000, rentPaise: 900000 }).expect(200);
+    expect(await deposit(stayId)).toMatchObject({ totalPaise: 1000000, balancePaise: 1000000, status: 'due' });
+    await pay(ctx, stayId, 400000).expect(201);
+    await ctx.client.patch(`${ctx.base}/stays/${stayId}`).send({ depositPaise: 300000 }).expect(409);
+    await ctx.client.patch(`${ctx.base}/stays/${stayId}`).send({ depositPaise: 400000 }).expect(200);
+    expect(await deposit(stayId)).toMatchObject({ balancePaise: 0, status: 'paid' });
+  });
+
+  it('marks a refund paid, tells the resident and audits it', async () => {
+    const stayId = await checkedOut();
+    const pending = (await ctx.client.get(`${ctx.base}/refunds`).expect(200)).body.data;
+    expect(pending[0]).toMatchObject({ stayId, settlement: { refundPaise: 750000 } });
+    await ctx.client.put(`${ctx.base}/stays/${stayId}/refund`).send({ amountPaise: 750000, paid: true }).expect(400);
+    const res = await ctx.client.put(`${ctx.base}/stays/${stayId}/refund`).send({ amountPaise: 750000, paid: true, mode: 'upi', reference: 'UPI-1' }).expect(200);
+    expect(res.body.data.settlement).toMatchObject({ mode: 'upi', reference: 'UPI-1' });
+    expect(res.body.data.settlement.refundedAt).toBeTruthy();
+    expect(await Notification.countDocuments({ title: 'Your advance was refunded' })).toBe(1);
+    expect(await AuditLog.countDocuments({ action: 'stay.refund', orgId: ctx.owner.orgId })).toBe(1);
+  });
+
+  it('edits a refund later, keeps the original, and never exceeds the advance', async () => {
+    const stayId = await checkedOut();
+    await ctx.client.put(`${ctx.base}/stays/${stayId}/refund`).send({ amountPaise: 850001, paid: false }).expect(400);
+    const res = await ctx.client.put(`${ctx.base}/stays/${stayId}/refund`).send({ amountPaise: 800000, paid: false, note: 'Waived part of the chair' }).expect(200);
+    expect(res.body.data.settlement).toMatchObject({ originalRefundPaise: 750000, refundPaise: 800000, note: 'Waived part of the chair' });
+  });
+
+  it('refuses a refund before check-out, and edits after it', async () => {
+    const stayId = await activeStay(ctx, ctx.beds[0]!.id);
+    await ctx.client.put(`${ctx.base}/stays/${stayId}/refund`).send({ amountPaise: 100, paid: false }).expect(409);
+    const ended = await checkedOutOn(ctx.beds[1]!.id);
+    await ctx.client.patch(`${ctx.base}/stays/${ended}`).send({ rentPaise: 100 }).expect(409);
+  });
+
+  async function checkedOutOn(bedId: string) {
+    const stayId = await activeStay(ctx, bedId, { depositPaise: 0 });
+    await ctx.client.post(`${ctx.base}/stays/${stayId}/notice`).send({}).expect(200);
+    await ctx.client.post(`${ctx.base}/stays/${stayId}/checkout`).send({ exitDate: istDate(2026, 12, 30) }).expect(200);
+    return stayId;
+  }
+
+  it('edits a room, adding and removing beds', async () => {
+    const room = (await ctx.client.get(`${ctx.base}/properties/${ctx.property._id}/bedmap`)).body.data.floors[0].rooms[0];
+    await ctx.client.patch(`${ctx.base}/rooms/${room.id}`).send({ number: '201', sharing: 3, isAc: true }).expect(200);
+    let beds = await Bed.find({ orgId: ctx.owner.orgId, roomId: room.id }).sort({ label: 1 }).lean();
+    expect(beds.map((b) => b.label)).toEqual(['A', 'B', 'C']);
+    await ctx.client.patch(`${ctx.base}/rooms/${room.id}`).send({ sharing: 1 }).expect(200);
+    beds = await Bed.find({ orgId: ctx.owner.orgId, roomId: room.id }).lean();
+    expect(beds).toHaveLength(1);
+  });
+
+  it('refuses to remove a bed or room with a resident', async () => {
+    const room = (await ctx.client.get(`${ctx.base}/properties/${ctx.property._id}/bedmap`)).body.data.floors[0].rooms[0];
+    await book(ctx, room.beds[1].id).expect(201);
+    await ctx.client.patch(`${ctx.base}/rooms/${room.id}`).send({ sharing: 1 }).expect(409);
+    await ctx.client.delete(`${ctx.base}/rooms/${room.id}`).expect(409);
+  });
+
+  it('deletes an empty room and its beds', async () => {
+    const room = (await ctx.client.get(`${ctx.base}/properties/${ctx.property._id}/bedmap`)).body.data.floors[0].rooms[0];
+    await ctx.client.delete(`${ctx.base}/rooms/${room.id}`).expect(200);
+    expect(await Bed.countDocuments({ orgId: ctx.owner.orgId, roomId: room.id })).toBe(0);
+  });
+
+  it('deletes an expense', async () => {
+    const expense = (await ctx.client.post(`${ctx.base}/expenses`).send({ propertyId: ctx.property._id, category: 'water', amountPaise: 5000, date: new Date() }).expect(201)).body.data;
+    await ctx.client.delete(`${ctx.base}/expenses/${expense._id}`).expect(200);
+    expect((await ctx.client.get(`${ctx.base}/expenses`).expect(200)).body.data).toHaveLength(0);
+  });
+
+  it('gives a clear error for a duplicate room number', async () => {
+    const rooms = (await ctx.client.get(`${ctx.base}/properties/${ctx.property._id}/bedmap`)).body.data.floors[0].rooms;
+    await ctx.client.patch(`${ctx.base}/rooms/${rooms[1].id}`).send({ number: rooms[0].number }).expect(409);
+  });
+
+  it('blocks another org', async () => {
+    const stayId = await checkedOut();
+    const other = await ownerWithOrg('Other PG');
+    await api(other.token).put(`/org/${other.orgId}/stays/${stayId}/refund`).send({ amountPaise: 1, paid: false }).expect(404);
   });
 });
 

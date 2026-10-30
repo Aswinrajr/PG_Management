@@ -255,9 +255,11 @@ export async function reportData(tenant: Tenant, type: string, from: Date, to: D
     case 'pnl': {
       const income = await Payment.find({ orgId, ...scoped, paidAt: dateRange, status: 'success', mode: { $ne: 'deposit_adjustment' } }, { amountPaise: 1 }).lean();
       const spent = await Expense.find({ orgId, ...scoped, date: dateRange }, { amountPaise: 1 }).lean();
+      const refunds = await Stay.find({ orgId, ...scoped, 'settlement.refundedAt': dateRange }, { settlement: 1 }).lean();
+      const refundsPaise = sum(refunds, (r) => r.settlement?.refundPaise ?? 0);
       const incomePaise = sum(income, (r) => r.amountPaise);
       const expensesPaise = sum(spent, (r) => r.amountPaise);
-      return { incomePaise, expensesPaise, netPaise: incomePaise - expensesPaise };
+      return { incomePaise, refundsPaise, expensesPaise, netPaise: incomePaise - refundsPaise - expensesPaise };
     }
     case 'gst-summary':
     case 'gstr1': {

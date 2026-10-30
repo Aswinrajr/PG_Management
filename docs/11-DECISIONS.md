@@ -62,6 +62,9 @@ Resolves conflicts and gaps found while reviewing docs 00–10. Where this doc d
 
 | D40 | Admin alerts | Submitting (not saving a draft) notifies every Super Admin by bell, live pop-up and push. The notification links to that owner's review in the KYC queue. |
 
+| D41 | Advance and refund | Screens say Advance; code keeps `deposit`. Advance can be edited during a stay but never below what was paid, and its invoice follows. After check-out the owner marks the refund paid and can correct it later. The first calculated amount is kept, each change is audited, and refunds paid reduce net in P&L. Refunds are records only: money moves outside the app. |
+| D42 | Room edits | Changing sharing adds or removes beds. Beds or rooms with past residents cannot be deleted; rooms can be marked not in use instead. |
+
 ## Build order changes to doc 07
 
 - Plans model and seed: moved from 2.8–2.9 to 1.3.

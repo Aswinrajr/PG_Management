@@ -56,7 +56,7 @@ const staySchema = new Schema(
     agreement: { acceptedAt: Date, otpVerified: Boolean, pdfKey: String },
     bedHistory: [{ _id: false, bedId: Schema.Types.ObjectId, from: Date, to: Date, rentPaise: Number }],
     recurringCharges: [charge],
-    settlement: { duesPaise: Number, deductions: [charge], refundPaise: Number, refundedAt: Date, mode: String },
+    settlement: { duesPaise: Number, deductions: [charge], originalRefundPaise: Number, refundPaise: Number, refundedAt: Date, mode: String, reference: String, note: String },
     source: { type: String, enum: ['owner', 'invite_link', 'listing'], default: 'owner' },
   },
   { timestamps: true },

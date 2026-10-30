@@ -1,4 +1,4 @@
-import { CheckoutBody, CreateStayBody, MoveBody, NoticeBody, ResidentsQuery, UpdateStayBody, VerifyKycBody, zObjectId } from '@roomora/types';
+import { CheckoutBody, CreateStayBody, MoveBody, NoticeBody, RefundBody, ResidentsQuery, UpdateStayBody, VerifyKycBody, zObjectId } from '@roomora/types';
 import { Router } from 'express';
 import { z } from 'zod';
 import { env } from '../../config/env.js';
@@ -23,7 +23,7 @@ stayRoutes.get('/stays/:id', requirePermission('stay.read'), validate({ params: 
   res.json({ success: true, data: await service.getStayDetail(req.tenant!, req.valid.params.id) });
 });
 stayRoutes.patch('/stays/:id', requirePermission('stay.write'), validate({ params: IdParams, body: UpdateStayBody }), async (req, res) => {
-  res.json({ success: true, data: await service.updateStay(req.tenant!, req.valid.params.id, req.valid.body) });
+  res.json({ success: true, data: await service.updateStay(req.tenant!, req.valid.params.id, req.valid.body, req.auth!.userId) });
 });
 stayRoutes.post('/stays/:id/verify-kyc', requirePermission('resident.kyc.verify'), validate({ params: IdParams, body: VerifyKycBody }), async (req, res) => {
   res.json({ success: true, data: await service.verifyKyc(req.tenant!, req.valid.params.id, req.valid.body, req.auth!.userId) });
@@ -36,6 +36,12 @@ stayRoutes.post('/stays/:id/notice', requirePermission('stay.write'), validate({
 });
 stayRoutes.post('/stays/:id/cancel', requirePermission('stay.write'), validate({ params: IdParams }), async (req, res) => {
   res.json({ success: true, data: await service.cancelStay(req.tenant!, req.valid.params.id) });
+});
+stayRoutes.get('/refunds', requirePermission('payment.read'), async (req, res) => {
+  res.json({ success: true, data: await service.listRefunds(req.tenant!) });
+});
+stayRoutes.put('/stays/:id/refund', requirePermission('payment.refund'), validate({ params: IdParams, body: RefundBody }), async (req, res) => {
+  res.json({ success: true, data: await service.saveRefund(req.tenant!, req.valid.params.id, req.valid.body, req.auth!.userId) });
 });
 stayRoutes.post('/stays/:id/checkout/preview', requirePermission('resident.checkout'), validate({ params: IdParams, body: CheckoutBody }), async (req, res) => {
   res.json({ success: true, data: await service.previewCheckout(req.tenant!, req.valid.params.id, req.valid.body) });

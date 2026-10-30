@@ -33,6 +33,10 @@ propertyRoutes.get('/properties/:id/bedmap', requirePermission('bed.read'), vali
 propertyRoutes.patch('/rooms/:id', requirePermission('room.write'), validate({ params: IdParams, body: UpdateRoomBody }), async (req, res) => {
   res.json({ success: true, data: await service.updateRoom(req.tenant!, req.valid.params.id, req.valid.body) });
 });
+propertyRoutes.delete('/rooms/:id', requirePermission('room.write'), validate({ params: IdParams }), async (req, res) => {
+  await service.deleteRoom(req.tenant!, req.valid.params.id);
+  res.json({ success: true, data: {} });
+});
 // Registered before /beds/:id so "available" is not read as an id.
 propertyRoutes.get('/beds/available', requirePermission('bed.read'), validate({ query: AvailableBedsQuery }), async (req, res) => {
   res.json({ success: true, data: await service.availableBeds(req.tenant!, req.valid.query) });

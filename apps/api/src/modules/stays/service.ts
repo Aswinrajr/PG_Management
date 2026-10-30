@@ -1,4 +1,4 @@
-import { settlementPaise, type RentRules, type StayStatus } from '@roomora/types';
+import { formatINR, settlementPaise, type RentRules, type StayStatus } from '@roomora/types';
 import type { Request } from 'express';
 import { Types, type ClientSession } from 'mongoose';
 import { encrypt, randomToken } from '../../lib/crypto.js';
@@ -11,6 +11,7 @@ import { assertPropertyAccess, propertyScope } from '../../middleware/auth.js';
 import { applyPayment, createInvoice, createMonthlyInvoice, openInvoices } from '../billing/service.js';
 import { Invoice, Payment } from '../billing/model.js';
 import { Membership } from '../orgs/model.js';
+import { notify } from '../ops/service.js';
 import { audit } from '../orgs/service.js';
 import { Bed, Property, Room } from '../properties/model.js';
 import { User } from '../users/model.js';
@@ -199,10 +200,79 @@ export async function getStayDetail(tenant: Tenant, id: string) {
   };
 }
 
-export async function updateStay(tenant: Tenant, id: string, input: { rentPaise?: number; recurringCharges?: { label: string; amountPaise: number }[] }) {
+/** Keeps the advance invoice in step with the stay. Money already received is never written off. */
+async function syncDepositInvoice(orgId: string, stay: InstanceType<typeof Stay>, depositPaise: number, session: Session) {
+  if (depositPaise < stay.depositPaidPaise) throw new AppError('CONFLICT', 'The advance cannot be less than what was already paid', 409);
+  const invoice = await Invoice.findOne({ orgId, stayId: stay._id, type: 'deposit', status: { $ne: 'void' } }).session(session ?? null);
+  if (!invoice) {
+    if (depositPaise > 0) await createInvoice(orgId, { stay, type: 'deposit', lines: [{ code: 'deposit', label: 'Security deposit', amountPaise: depositPaise }], dueDate: stay.joinDate }, session);
+    return;
+  }
+  if (depositPaise === 0) {
+    invoice.set({ status: 'void', balancePaise: 0, voidReason: 'Advance removed' });
+  } else {
+    invoice.lineItems[0]!.amountPaise = depositPaise;
+    const balancePaise = depositPaise - invoice.paidPaise;
+    const status = balancePaise === 0 ? 'paid' : invoice.paidPaise > 0 ? 'partially_paid' : invoice.status === 'overdue' ? 'overdue' : 'due';
+    invoice.set({ subtotalPaise: depositPaise, totalPaise: depositPaise, balancePaise, status });
+  }
+  await invoice.save({ session });
+}
+
+export async function updateStay(tenant: Tenant, id: string, input: { rentPaise?: number; depositPaise?: number; recurringCharges?: { label: string; amountPaise: number }[] }, actorUserId: string) {
+  return withTransaction(async (session) => {
+    const stay = await loadStay(tenant, id, session);
+    if (!LIVE.includes(stay.status as StayStatus)) throw new AppError('CONFLICT', 'This stay has ended. Edit the refund instead.', 409);
+    const before = { rentPaise: stay.rentPaise, depositPaise: stay.depositPaise };
+    if (input.depositPaise !== undefined && input.depositPaise !== stay.depositPaise) await syncDepositInvoice(tenant.orgId, stay, input.depositPaise, session);
+    stay.set(input);
+    await stay.save({ session });
+    await audit({ actorUserId, orgId: tenant.orgId, action: 'stay.update', targetType: 'stay', targetId: stay._id, meta: { before, after: input } });
+    return stay;
+  });
+}
+
+export async function listRefunds(tenant: Tenant) {
+  const { orgId } = tenant;
+  const stays = await Stay.find({ orgId, ...propertyScope(tenant), status: 'checked_out', 'settlement.refundPaise': { $gt: 0 } }).sort({ exitDate: -1 }).limit(200).lean();
+  const [profiles, rooms, beds, properties] = await Promise.all([
+    ResidentProfile.find({ orgId, _id: { $in: stays.map((s) => s.residentProfileId) } }, { fullName: 1 }).lean(),
+    Room.find({ orgId, _id: { $in: stays.map((s) => s.roomId) } }, { number: 1 }).lean(),
+    Bed.find({ orgId, _id: { $in: stays.map((s) => s.bedId) } }, { label: 1 }).lean(),
+    Property.find({ orgId, _id: { $in: stays.map((s) => s.propertyId) } }, { name: 1 }).lean(),
+  ]);
+  const find = <T extends { _id: unknown }>(list: T[], id: unknown) => list.find((x) => String(x._id) === String(id));
+  return stays.map((stay) => ({
+    stayId: String(stay._id),
+    name: find(profiles, stay.residentProfileId)?.fullName ?? '',
+    property: find(properties, stay.propertyId)?.name,
+    room: find(rooms, stay.roomId)?.number,
+    bed: find(beds, stay.bedId)?.label,
+    exitDate: stay.exitDate,
+    depositPaidPaise: stay.depositPaidPaise,
+    settlement: stay.settlement,
+  }));
+}
+
+/** Records the refund, or corrects it later. Every change is audited. */
+export async function saveRefund(tenant: Tenant, id: string, input: { amountPaise: number; paid: boolean; mode?: string; reference?: string; paidAt?: Date; note?: string }, actorUserId: string) {
+  const { orgId } = tenant;
   const stay = await loadStay(tenant, id);
-  stay.set(input);
-  return stay.save();
+  if (stay.status !== 'checked_out' || !stay.settlement) throw new AppError('CONFLICT', 'Refunds are recorded after check-out', 409);
+  if (input.amountPaise > stay.depositPaidPaise) throw new AppError('VALIDATION_ERROR', 'A refund cannot be more than the advance paid', 400);
+  if (input.paid && !input.mode) throw new AppError('VALIDATION_ERROR', 'Choose how the refund was paid', 400);
+  const wasPaid = Boolean(stay.settlement.refundedAt);
+  const before = { refundPaise: stay.settlement.refundPaise, refundedAt: stay.settlement.refundedAt };
+  stay.settlement.originalRefundPaise ??= stay.settlement.refundPaise;
+  stay.settlement.refundPaise = input.amountPaise;
+  stay.settlement.note = input.note;
+  stay.settlement.mode = input.paid ? input.mode : undefined;
+  stay.settlement.reference = input.paid ? input.reference : undefined;
+  stay.settlement.refundedAt = input.paid ? (input.paidAt ?? new Date()) : undefined;
+  await stay.save();
+  await audit({ actorUserId, orgId, action: 'stay.refund', targetType: 'stay', targetId: stay._id, meta: { before, after: input } });
+  if (input.paid && !wasPaid) await notify(stay.residentUserId, orgId, 'Your advance was refunded', `${formatINR(input.amountPaise)} has been paid back to you.`);
+  return stay;
 }
 
 /** D3: Aadhaar numbers are never stored, only the last 4 digits. */
@@ -341,7 +411,7 @@ export async function checkout(tenant: Tenant, id: string, input: CheckoutInput,
     fresh.status = 'checked_out';
     fresh.isCurrent = false;
     fresh.exitDate = input.exitDate;
-    fresh.set('settlement', { duesPaise, deductions: input.deductions, refundPaise });
+    fresh.set('settlement', { duesPaise, deductions: input.deductions, originalRefundPaise: refundPaise, refundPaise });
     const last = fresh.bedHistory.at(-1);
     if (last) last.to = input.exitDate;
     await fresh.save({ session });

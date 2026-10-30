@@ -1,6 +1,6 @@
 import {
   BedDouble, Building2, ClipboardList, CreditCard, FileCheck2, FileText, Gauge, Home, LayoutDashboard, Megaphone, MessageSquareWarning,
-  Radio, ReceiptIndianRupee, ScrollText, Settings, Trophy, User, Users, UtensilsCrossed, Wallet, WalletCards, WashingMachine, Zap,
+  Radio, ReceiptIndianRupee, ScrollText, Settings, Trophy, Undo2, User, Users, UtensilsCrossed, Wallet, WalletCards, WashingMachine, Zap,
 } from 'lucide-react';
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Link, Navigate, Outlet, useRouteError } from 'react-router';
@@ -37,6 +37,7 @@ const OWNER_NAV: NavItem[] = [
   { to: '/app/billing/dues', label: 'Dues', icon: Wallet },
   { to: '/app/billing/invoices', label: 'Invoices', icon: FileText },
   { to: '/app/billing/payments', label: 'Payments', icon: ReceiptIndianRupee },
+  { to: '/app/billing/refunds', label: 'Refunds', icon: Undo2 },
   { to: '/app/billing/electricity', label: 'Electricity', icon: Zap },
   { to: '/app/expenses', label: 'Expenses', icon: WalletCards },
   { to: '/app/complaints', label: 'Complaints', icon: MessageSquareWarning },
@@ -158,6 +159,7 @@ export const router = createBrowserRouter([
         { path: 'billing/dues', Component: named(billing, 'DuesPage') },
         { path: 'billing/invoices', Component: named(billing, 'InvoicesPage') },
         { path: 'billing/payments', Component: named(billing, 'PaymentsPage') },
+        { path: 'billing/refunds', Component: named(billing, 'RefundsPage') },
         { path: 'billing/electricity', Component: named(billing, 'ElectricityPage') },
         { path: 'expenses', Component: named(ops, 'ExpensesPage') },
         { path: 'complaints', Component: named(ops, 'ComplaintsPage') },
