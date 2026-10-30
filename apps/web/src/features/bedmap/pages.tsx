@@ -148,7 +148,13 @@ export default function BedmapPage() {
           </div>
           <Query query={query as never}>
             {() =>
-              floors.length === 0 ? <EmptyState title={t('No beds match these filters')} /> : (
+              query.data?.summary.total === 0 ? (
+                <EmptyState
+                  title={t('No rooms yet')}
+                  text={t('Add your rooms and beds to see them here.')}
+                  action={<Link to={`/app/properties/${propertyId}?tab=rooms`}><Button>{t('Add rooms and beds')}</Button></Link>}
+                />
+              ) : floors.length === 0 ? <EmptyState title={t('No beds match these filters')} /> : (
                 <div className="space-y-6">
                   {floors.map((floor) => (
                     <section key={floor.id} aria-label={floor.label}>

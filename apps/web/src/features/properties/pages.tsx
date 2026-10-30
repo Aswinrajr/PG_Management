@@ -2,7 +2,7 @@ import { CreatePropertyBody, proRatePaise } from '@roomora/types';
 import { QRCodeSVG } from 'qrcode.react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useNavigate, useParams } from 'react-router';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router';
 import { Button, Card, CardTitle, EmptyState, Field, FormError, Input, PageHeader, Query, Select, Tabs, Textarea } from '../../components/ui';
 import { useGet, useSend } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
@@ -185,6 +185,10 @@ export function RoomsGrid({ propertyId, onDone }: { propertyId: string; onDone?:
         <Field label={t('Sharing')}><Select value={sharing} onChange={(e) => setSharing(Number(e.target.value))}>{[1, 2, 3, 4].map((n) => <option key={n}>{n}</option>)}</Select></Field>
         <Button variant="secondary" onClick={fill}>{t('Quick fill')}</Button>
       </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button variant="secondary" onClick={() => setRows([...rows, { floor: rows.at(-1)?.floor ?? 1, number: '', sharing, isAc: false, hasAttachedBath: false, rent: '' }])}>{t('Add one room')}</Button>
+        <span className="text-xs text-text-muted">{t('Beds are created for you: 2-sharing gives beds A and B.')}</span>
+      </div>
       {rows.length > 0 && (
         <>
           <div className="overflow-x-auto rounded-md border border-border">
@@ -195,7 +199,7 @@ export function RoomsGrid({ propertyId, onDone }: { propertyId: string; onDone?:
               <tbody>
                 {rows.map((row, i) => (
                   <tr key={i} className="border-t border-border">
-                    <td className="px-2 py-1">{row.floor}</td>
+                    <td className="w-20 px-2 py-1"><Input aria-label={t('Floor')} type="number" min={0} value={row.floor} onChange={(e) => patch(i, { floor: Number(e.target.value) })} /></td>
                     <td className="px-2 py-1"><Input aria-label={t('Room no.')} value={row.number} onChange={(e) => patch(i, { number: e.target.value })} /></td>
                     <td className="px-2 py-1"><Select aria-label={t('Sharing')} value={row.sharing} onChange={(e) => patch(i, { sharing: Number(e.target.value) })}>{[1, 2, 3, 4].map((n) => <option key={n}>{n}</option>)}</Select></td>
                     <td className="px-2 py-1"><input aria-label={t('AC')} type="checkbox" className="size-5" checked={row.isAc} onChange={(e) => patch(i, { isAc: e.target.checked })} /></td>
@@ -207,10 +211,10 @@ export function RoomsGrid({ propertyId, onDone }: { propertyId: string; onDone?:
             </table>
           </div>
           <FormError error={save.error} />
-          <Button loading={save.isPending} onClick={submit}>{t('Create {{rooms}} rooms and {{beds}} beds', { rooms: rows.length, beds })}</Button>
+          <Button loading={save.isPending} disabled={rows.some((r) => !r.number.trim())} onClick={submit}>{t('Create {{rooms}} rooms and {{beds}} beds', { rooms: rows.length, beds })}</Button>
         </>
       )}
-      {save.isSuccess && <p className="text-success-text">{t('Rooms created.')}</p>}
+      {save.isSuccess && <p className="text-success-text">{t('Rooms created.')} <Link to="/app/bedmap" className="font-medium text-primary">{t('Open bed map')}</Link></p>}
     </div>
   );
 }
@@ -320,7 +324,8 @@ export function PropertyDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams();
   const { orgPath } = useAuth();
-  const [tab, setTab] = useState<'overview' | 'location' | 'rooms' | 'rules' | 'invite' | 'settings'>('overview');
+  const [params] = useSearchParams();
+  const [tab, setTab] = useState<'overview' | 'location' | 'rooms' | 'rules' | 'invite' | 'settings'>(params.get('tab') === 'rooms' ? 'rooms' : 'overview');
   const query = useGet<any>(orgPath(`/properties/${id}`));
   const inviteUrl = `${location.origin}/join/${id}`;
   return (
