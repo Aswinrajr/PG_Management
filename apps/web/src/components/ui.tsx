@@ -60,7 +60,7 @@ export function Field({ label, error, hint, children }: { label: string; error?:
     <label className="block space-y-1">
       <span className="text-xs font-medium text-text-muted">{label}</span>
       {children}
-      {hint && !error && <span className="block text-xs text-text-muted">{hint}</span>}
+      {hint && !error && <span className="block break-all text-xs text-text-muted">{hint}</span>}
       {error && (
         <span role="alert" className="flex items-center gap-1 text-xs text-danger-text">
           <AlertCircle className="size-3" aria-hidden /> {error}
@@ -80,7 +80,7 @@ export function FormError({ error }: { error?: Error | null }) {
 }
 
 export const Card = ({ className, children }: { className?: string; children: ReactNode }) => (
-  <section className={cx('rounded-md border border-border bg-surface p-4 shadow-card md:p-5 lg:p-6', className)}>{children}</section>
+  <section className={cx('min-w-0 rounded-md border border-border bg-surface p-4 shadow-card md:p-5 lg:p-6', className)}>{children}</section>
 );
 
 export const CardTitle = ({ children, action }: { children: ReactNode; action?: ReactNode }) => (
@@ -209,7 +209,7 @@ export function StatCard({ icon: Icon, label, value, hint, to }: { icon: LucideI
         <Icon className="size-4" aria-hidden />
         <span className="truncate text-xs font-medium">{label}</span>
       </div>
-      <p className="tabular mt-2 text-[22px] font-bold leading-8 md:text-[28px] md:leading-9">{value}</p>
+      <p className="tabular mt-2 text-lg font-bold leading-7 sm:text-[22px] sm:leading-8 md:text-[28px] md:leading-9">{value}</p>
       {hint && <p className="mt-1 truncate text-xs text-text-muted">{hint}</p>}
     </>
   );

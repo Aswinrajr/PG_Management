@@ -7,3 +7,5 @@ coverage
 .turbo
 apps/api/uploads
 .DS_Store
+test-results
+playwright-report

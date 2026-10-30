@@ -134,7 +134,7 @@ function Brand() {
   return (
     <Link to="/" className="flex items-center gap-2 font-brand text-lg font-bold">
       <img src="/roomora-icon.svg" alt="" className="size-8" />
-      <span>room<span className="text-primary">ora</span></span>
+      <span className="hidden sm:inline md:hidden lg:inline">room<span className="text-primary">ora</span></span>
     </Link>
   );
 }

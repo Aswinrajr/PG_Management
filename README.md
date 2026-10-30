@@ -11,13 +11,15 @@ Multi-tenant SaaS for PG / hostel / co-living owners in India: rooms and beds, r
 
 **Start here:** [`docs/00-START-HERE.md`](docs/00-START-HERE.md)
 
+**Decisions that override the specs:** [docs/11-DECISIONS.md](docs/11-DECISIONS.md) · **What is built:** [docs/12-STATUS.md](docs/12-STATUS.md)
+
 ## Quick start
 
 ```
 pnpm install
 cp apps/api/.env.example apps/api/.env
 cp apps/web/.env.example apps/web/.env
-docker compose up -d          # MongoDB + Redis
+docker compose up -d          # MongoDB + Redis (optional: a local MongoDB works, Redis is optional in dev)
 pnpm --filter api seed
 pnpm dev                      # web on http://localhost:5173, api on http://localhost:4000
 ```
@@ -26,7 +28,7 @@ Demo logins after seeding (dev OTP is always `123456`):
 
 | Role | Phone |
 | --- | --- |
-| Super Admin | 9000000001 |
+| Super Admin (dev only; production uses `/admin/login`) | 9000000001 |
 | Owner (Sunrise PG) | 9000000002 |
 | Manager | 9000000003 |
 | Resident | 9000000010 |

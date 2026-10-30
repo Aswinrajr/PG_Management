@@ -21,7 +21,7 @@ function BrandPanel() {
     { icon: ShieldCheck, text: t('Your data stays private to your PG') },
   ];
   return (
-    <aside className="hidden flex-1 flex-col justify-center gap-8 bg-gradient-to-br from-primary to-primary-hover p-12 text-white lg:flex dark:text-slate-950">
+    <aside className="hidden flex-1 flex-col justify-center gap-8 bg-linear-to-br from-primary to-primary-hover p-12 text-white lg:flex dark:text-slate-950">
       <img src="/roomora-logo.svg" alt="Roomora" className="w-60 rounded-lg bg-white p-3" />
       <h1 className="text-[32px] font-bold leading-10">{t('Run your PG without registers and spreadsheets')}</h1>
       <ul className="space-y-4 text-base">
@@ -55,7 +55,7 @@ export function LoginPage() {
     if (step === 'otp') otpRef.current?.focus();
   }, [step]);
 
-  if (me) return <Navigate to={me.memberships.length > 1 ? '/select-workspace' : homeOf(workspace)} replace />;
+  if (me) return <Navigate to={me.isSuperAdmin ? '/admin' : me.memberships.length > 1 ? '/select-workspace' : homeOf(workspace)} replace />;
 
   async function send(e?: FormEvent) {
     e?.preventDefault();

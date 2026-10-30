@@ -246,7 +246,7 @@ function MenuEditor({ propertyId, weekStart, initial, previous }: { propertyId: 
       </div>
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
-          <thead><tr><th scope="col" /> {MEALS.map((m) => <th key={m} scope="col" className="px-1 py-2 text-left font-medium capitalize text-text-muted">{t(m)}</th>)}</tr></thead>
+          <thead><tr><th scope="col" />{MEALS.map((m) => <th key={m} scope="col" className="px-1 py-2 text-left font-medium capitalize text-text-muted">{t(m)}</th>)}</tr></thead>
           <tbody>
             {days.map((d, i) => (
               <tr key={d.day}>

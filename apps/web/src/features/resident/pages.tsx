@@ -29,7 +29,7 @@ export function HomePage() {
         {(home) => (
           <>
             {home.dueInvoice ? (
-              <section className="rounded-lg bg-gradient-to-br from-primary to-primary-hover p-5 text-white dark:text-slate-950">
+              <section className="rounded-lg bg-linear-to-br from-primary to-primary-hover p-5 text-white dark:text-slate-950">
                 <p>{home.dueInvoice.period ? t('Rent for {{month}}', { month: formatPeriod(home.dueInvoice.period) }) : t('Amount due')}</p>
                 <p className="tabular my-1 text-[32px] font-bold leading-10">{formatINR(home.balancePaise)}</p>
                 <p className="mb-3">{t('Due {{date}}', { date: formatDate(home.dueInvoice.dueDate) })}</p>

@@ -90,8 +90,8 @@ export default function DashboardPage() {
                       <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} />
                       <YAxis width={56} tickFormatter={(v: number) => `₹${Math.round(v / 1000)}k`} tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} />
                       <Tooltip formatter={(v) => `₹${Number(v).toLocaleString('en-IN')}`} />
-                      <Bar dataKey="collected" name={t('Collected')} fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
-                      <Line dataKey="expected" name={t('Expected')} stroke="var(--color-secondary)" strokeWidth={2} dot={false} />
+                      <Bar isAnimationActive={false} dataKey="collected" name={t('Collected')} fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+                      <Line isAnimationActive={false} dataKey="expected" name={t('Expected')} stroke="var(--color-secondary)" strokeWidth={2} dot={false} />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
