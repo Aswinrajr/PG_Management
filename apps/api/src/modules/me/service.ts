@@ -35,7 +35,7 @@ export async function currentStay(userId: string, forWrite = false) {
 export async function getHome(userId: string) {
   const { stay, orgId } = await currentStay(userId);
   const [property, room, bed, invoices, notice, tickets] = await Promise.all([
-    Property.findOne({ orgId, _id: stay.propertyId }, { name: 1, address: 1 }).lean(),
+    Property.findOne({ orgId, _id: stay.propertyId }, { name: 1, address: 1, amenities: 1 }).lean(),
     Room.findOne({ orgId, _id: stay.roomId }, { number: 1, sharing: 1 }).lean(),
     Bed.findOne({ orgId, _id: stay.bedId }, { label: 1 }).lean(),
     openInvoices(orgId, stay._id).lean(),

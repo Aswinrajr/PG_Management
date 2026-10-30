@@ -1,4 +1,4 @@
-import { BedSingle, CalendarClock, LogOut, Snowflake, Sun, User, Wrench, type LucideIcon } from 'lucide-react';
+import { BedSingle, CalendarClock, LogOut, PencilRuler, Snowflake, Sun, User, Wrench, type LucideIcon } from 'lucide-react';
 import { memo, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router';
@@ -157,7 +157,7 @@ export default function BedmapPage() {
                         {floor.rooms.map((room) => (
                           <div key={room.id} className="rounded-md border border-border bg-surface p-3 shadow-card">
                             <div className="mb-2 flex items-center justify-between">
-                              <span className="font-semibold">{room.number}</span>
+                              <Link to={`/app/rooms/${room.id}/design`} aria-label={t('Design room {{number}}', { number: room.number })} className="flex items-center gap-1 font-semibold hover:text-primary">{room.number} <PencilRuler className="size-3 text-text-muted" aria-hidden /></Link>
                               <span className="flex items-center gap-1 text-xs text-text-muted">
                                 {room.isAc && <Snowflake className="size-3" aria-label={t('AC')} />} {room.sharing}×
                               </span>

@@ -1,6 +1,6 @@
 import {
   BedDouble, Building2, ClipboardList, CreditCard, FileCheck2, FileText, Gauge, Home, LayoutDashboard, Megaphone, MessageSquareWarning,
-  Radio, ReceiptIndianRupee, ScrollText, Settings, UserCog, User, Users, UtensilsCrossed, Wallet, WalletCards, Zap,
+  Radio, ReceiptIndianRupee, ScrollText, Settings, Trophy, UserCog, User, Users, UtensilsCrossed, Wallet, WalletCards, WashingMachine, Zap,
 } from 'lucide-react';
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Link, Navigate, Outlet, useRouteError } from 'react-router';
@@ -24,6 +24,9 @@ const billing = () => import('./features/billing/pages');
 const ops = () => import('./features/ops/pages');
 const me = () => import('./features/resident/pages');
 const admin = () => import('./features/admin/pages');
+const community = () => import('./features/community/pages');
+const laundry = () => import('./features/laundry/pages');
+const rooms = () => import('./features/rooms/pages');
 
 const OWNER_NAV: NavItem[] = [
   { to: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -37,6 +40,7 @@ const OWNER_NAV: NavItem[] = [
   { to: '/app/complaints', label: 'Complaints', icon: MessageSquareWarning },
   { to: '/app/notices', label: 'Notices', icon: Megaphone },
   { to: '/app/food-menu', label: 'Food menu', icon: UtensilsCrossed },
+  { to: '/app/laundry', label: 'Laundry', icon: WashingMachine },
   { to: '/app/reports', label: 'Reports', icon: ClipboardList },
   { to: '/app/properties', label: 'Properties', icon: Building2 },
   { to: '/app/staff', label: 'Staff', icon: UserCog },
@@ -55,6 +59,8 @@ const STAFF_PATHS = ['/app/dashboard', '/app/bedmap', '/app/residents', '/app/co
 
 const RESIDENT_NAV: NavItem[] = [
   { to: '/me', label: 'Home', icon: Home, end: true },
+  { to: '/me/games', label: 'Games', icon: Trophy },
+  { to: '/me/laundry', label: 'Laundry', icon: WashingMachine },
   { to: '/me/payments', label: 'Payments', icon: CreditCard },
   { to: '/me/requests', label: 'Requests', icon: MessageSquareWarning },
   { to: '/me/profile', label: 'Profile', icon: User },
@@ -92,7 +98,7 @@ function ResidentLayout() {
   if (loading) return <ListSkeleton />;
   if (!user) return <Navigate to="/login" replace />;
   if (workspace && workspace.role !== 'resident') return <Navigate to={homeOf(workspace)} replace />;
-  return <AppShell nav={RESIDENT_NAV} tabs={RESIDENT_NAV} title={workspace?.orgName} />;
+  return <AppShell nav={RESIDENT_NAV} tabs={RESIDENT_NAV.slice(0, 4)} title={workspace?.orgName} />;
 }
 
 function AdminLayout() {
@@ -158,6 +164,8 @@ export const router = createBrowserRouter([
         { path: 'complaints', Component: named(ops, 'ComplaintsPage') },
         { path: 'notices', Component: named(ops, 'NoticesPage') },
         { path: 'food-menu', Component: named(ops, 'FoodMenuPage') },
+        { path: 'laundry', Component: named(laundry, 'OwnerLaundryPage') },
+        { path: 'rooms/:roomId/design', Component: named(rooms, 'RoomDesignPage') },
         { path: 'reports', Component: named(ops, 'ReportsPage') },
         { path: 'staff', Component: named(ops, 'StaffPage') },
         { path: 'settings', Component: named(ops, 'SettingsPage') },
@@ -173,6 +181,10 @@ export const router = createBrowserRouter([
       children: [
         { index: true, Component: named(me, 'HomePage') },
         { path: 'payments', Component: named(me, 'PaymentsPage') },
+        { path: 'games', Component: named(community, 'GamesPage') },
+        { path: 'games/:id', Component: named(community, 'GameChatPage') },
+        { path: 'laundry', Component: named(laundry, 'ResidentLaundryPage') },
+        { path: 'room', Component: named(rooms, 'MyRoomPage') },
         { path: 'requests', Component: named(me, 'RequestsPage') },
         { path: 'notices', Component: named(me, 'NoticesPage') },
         { path: 'menu', Component: named(me, 'MenuPage') },

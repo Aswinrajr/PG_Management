@@ -9,6 +9,7 @@ import { errorHandler, notFound, rateLimit, rejectUnsafeKeys, requestId } from '
 import { authRoutes } from './modules/auth/routes.js';
 import { adminLoginRoutes, adminRoutes } from './modules/admin/routes.js';
 import { billingRoutes } from './modules/billing/routes.js';
+import { communityRoutes, ownerCommunityRoutes } from './modules/community/routes.js';
 import { meRoutes, webhookRoutes } from './modules/me/routes.js';
 import { opsRoutes } from './modules/ops/routes.js';
 import { orgCreateRoutes, tenantRouter } from './modules/orgs/routes.js';
@@ -36,12 +37,12 @@ export function createApp(): Express {
   app.use('/api/v1', rateLimit('api', 600, 60));
   app.use('/api/v1/auth', adminLoginRoutes, authRoutes);
   app.use('/api/v1/admin', adminRoutes);
-  app.use('/api/v1/me', meRoutes);
+  app.use('/api/v1/me', meRoutes, communityRoutes);
   app.use('/api/v1/uploads', uploadRoutes);
   app.use('/api/v1/files', fileRoutes);
   app.use('/api/v1/orgs', orgCreateRoutes);
   app.use('/api/v1/invites', inviteRoutes);
-  tenantRouter.use(propertyRoutes, stayRoutes, billingRoutes, opsRoutes);
+  tenantRouter.use(propertyRoutes, stayRoutes, billingRoutes, opsRoutes, ownerCommunityRoutes);
   app.use('/api/v1/org/:orgId', tenantRouter);
   app.use(notFound);
   app.use(errorHandler);

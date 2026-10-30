@@ -17,6 +17,8 @@ export const envSchema = z
     OTP_DEV_MODE: flag,
     STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
     RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+    VAPID_PUBLIC_KEY: z.string().optional().transform((v) => v || undefined),
+    VAPID_PRIVATE_KEY: z.string().optional().transform((v) => v || undefined),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;

@@ -1,4 +1,4 @@
-import { CheckCircle2, Hammer, Plug, ShowerHead, Soup, Sparkles, Wifi, CircleHelp, type LucideIcon } from 'lucide-react';
+import { CheckCircle2, Hammer, Plug, ShowerHead, Soup, Sparkles, Trophy, WashingMachine, Wifi, Wrench, CircleHelp, type LucideIcon } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
@@ -38,11 +38,26 @@ export function HomePage() {
             ) : (
               <Card className="rounded-lg"><p className="flex items-center gap-2 font-semibold text-success-text"><CheckCircle2 className="size-5" aria-hidden /> {t('All paid')}</p></Card>
             )}
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { to: '/me/games', icon: Trophy, label: t('Games') },
+                { to: '/me/laundry', icon: WashingMachine, label: t('Laundry') },
+                { to: '/me/requests', icon: Wrench, label: t('Requests') },
+              ].map(({ to, icon: Icon, label }) => (
+                <Link key={to} to={to} className="flex min-h-20 flex-col items-center justify-center gap-1 rounded-lg border border-border bg-surface text-sm font-medium shadow-card hover:border-primary">
+                  <Icon className="size-6 text-primary" aria-hidden /> {label}
+                </Link>
+              ))}
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
               <Card className="rounded-lg">
                 <CardTitle>{t('My room')}</CardTitle>
                 <p>{home.property?.name}</p>
                 <p className="text-text-muted">{t('Room {{room}}, bed {{bed}}', { room: home.room?.number, bed: home.bed?.label })}</p>
+                <Link to="/me/room" className="mt-2 inline-flex min-h-11 items-center font-medium text-primary">{t('View my room')}</Link>
+                {home.property?.amenities?.length > 0 && (
+                  <div className="mt-1 flex flex-wrap gap-1">{home.property.amenities.map((a: string) => <span key={a} className="rounded-full bg-surface-muted px-2 py-0.5 text-xs">{t(a)}</span>)}</div>
+                )}
               </Card>
               <Card className="rounded-lg">
                 <CardTitle>{t("Today's menu")}</CardTitle>
@@ -341,13 +356,27 @@ function KycForm({ profile, orgId }: { profile: any; orgId?: string }) {
     contactName: profile?.emergencyContact?.name ?? '',
     relation: profile?.emergencyContact?.relation ?? '',
     contactPhone: (profile?.emergencyContact?.phone ?? '').replace(/^91/, ''),
+    occupation: profile?.occupation ?? 'working',
+    organizationName: profile?.organizationName ?? '',
+    designation: profile?.designation ?? '',
+    companyProofKey: profile?.companyProofKey ?? '',
+    vehicleType: profile?.vehicleType ?? 'none',
+    vehicleModel: profile?.vehicleModel ?? '',
+    vehicleNumber: profile?.vehicleNumber ?? '',
   });
   const save = useSend('put', '/me/profile');
   const bind = (key: keyof typeof form) => ({ value: form[key], onChange: (e: { target: { value: string } }) => setForm({ ...form, [key]: e.target.value }) });
   function submit(e: FormEvent) {
     e.preventDefault();
-    const { contactName, relation, contactPhone, idBackKey, ...rest } = form;
-    save.mutate({ ...rest, ...(idBackKey && { idBackKey }), emergencyContact: { name: contactName, relation, phone: contactPhone } });
+    const { contactName, relation, contactPhone, idBackKey, companyProofKey, vehicleModel, vehicleNumber, ...rest } = form;
+    const hasVehicle = form.vehicleType !== 'none';
+    save.mutate({
+      ...rest,
+      ...(idBackKey && { idBackKey }),
+      ...(companyProofKey && { companyProofKey }),
+      ...(hasVehicle && { vehicleModel, vehicleNumber }),
+      emergencyContact: { name: contactName, relation, phone: contactPhone },
+    });
   }
   return (
     <form onSubmit={submit} className="space-y-3">
@@ -371,6 +400,23 @@ function KycForm({ profile, orgId }: { profile: any; orgId?: string }) {
         <Field label={t('Emergency contact')}><Input {...bind('contactName')} /></Field>
         <Field label={t('Relation')}><Input {...bind('relation')} /></Field>
         <Field label={t('Their phone')}><Input inputMode="numeric" maxLength={10} {...bind('contactPhone')} /></Field>
+      </div>
+      <h3 className="pt-2 font-semibold">{t('Work or study')}</h3>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label={t('I am a')}><Select {...bind('occupation')}><option value="working">{t('Working')}</option><option value="student">{t('Student')}</option><option value="other">{t('Other')}</option></Select></Field>
+        <Field label={t('Company or college')}><Input {...bind('organizationName')} /></Field>
+        <Field label={t('Role or course')}><Input {...bind('designation')} /></Field>
+      </div>
+      {orgId && <FileUpload label={t('Company or college ID (optional)')} kind="kyc" orgId={orgId} value={form.companyProofKey} onChange={(companyProofKey) => setForm({ ...form, companyProofKey })} />}
+      <h3 className="pt-2 font-semibold">{t('Vehicle')}</h3>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Field label={t('Do you have one?')}><Select {...bind('vehicleType')}><option value="none">{t('No vehicle')}</option><option value="bike">{t('Bike')}</option><option value="car">{t('Car')}</option></Select></Field>
+        {form.vehicleType !== 'none' && (
+          <>
+            <Field label={t('Model')}><Input {...bind('vehicleModel')} /></Field>
+            <Field label={t('Number plate')}><Input {...bind('vehicleNumber')} /></Field>
+          </>
+        )}
       </div>
       <FormError error={save.error} />
       {save.isSuccess && <p className="text-success-text">{t('Sent for verification.')}</p>}

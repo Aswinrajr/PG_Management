@@ -318,6 +318,12 @@ function KycTab({ stayId, profile }: { stayId: string; profile: any }) {
         {profile.idFrontKey && <SecureImage fileKey={profile.idFrontKey} alt={t('ID front')} />}
         {profile.idBackKey && <SecureImage fileKey={profile.idBackKey} alt={t('ID back')} />}
       </div>
+      <dl className="grid gap-2 text-sm sm:grid-cols-2">
+        <div><dt className="text-text-muted">{t('Company or college')}</dt><dd>{profile.organizationName || '—'}{profile.designation ? `, ${profile.designation}` : ''}</dd></div>
+        <div><dt className="text-text-muted">{t('Vehicle')}</dt><dd className="capitalize">{profile.vehicleType && profile.vehicleType !== 'none' ? [t(profile.vehicleType), profile.vehicleModel, profile.vehicleNumber].filter(Boolean).join(' · ') : t('None')}</dd></div>
+        <div><dt className="text-text-muted">{t('Emergency contact')}</dt><dd>{profile.emergencyContact?.name || '—'}</dd></div>
+      </dl>
+      {profile.companyProofKey && <SecureImage fileKey={profile.companyProofKey} alt={t('Company proof')} />}
       {!profile.idFrontKey && <p className="text-text-muted">{t('The resident has not uploaded documents yet. You can still approve after checking them in person.')}</p>}
       <Field label={t('Reason, if rejecting')}><Textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
       <FormError error={verify.error} />

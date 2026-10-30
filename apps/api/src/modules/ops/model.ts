@@ -101,6 +101,12 @@ const notificationSchema = new Schema(
 notificationSchema.index({ createdAt: 1 }, { expireAfterSeconds: 90 * 86400 });
 export const Notification = model('Notification', notificationSchema);
 
+const pushSchema = new Schema(
+  { userId: { type: ObjectId, required: true, index: true }, endpoint: { type: String, required: true, unique: true }, p256dh: { type: String, required: true }, auth: { type: String, required: true } },
+  { timestamps: true },
+);
+export const PushSubscription = model('PushSubscription', pushSchema);
+
 const broadcastSchema = new Schema({ title: String, body: String, createdBy: ObjectId }, { timestamps: true });
 export const Broadcast = model('Broadcast', broadcastSchema);
 

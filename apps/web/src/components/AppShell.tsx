@@ -1,4 +1,5 @@
 import * as Dialog from '@radix-ui/react-dialog';
+import { useQueryClient } from '@tanstack/react-query';
 import { Bell, LogOut, Menu as MenuIcon, Moon, ShieldAlert, Sun, X, type LucideIcon } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +8,7 @@ import { setLanguage } from '../i18n';
 import { useGet, useSend } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { formatDate } from '../lib/format';
+import { getSocket } from '../lib/socket';
 import { Button, cx, Select, Sheet } from './ui';
 
 export interface NavItem {
@@ -29,7 +31,26 @@ export function initTheme() {
 
 function Notifications() {
   const { t } = useTranslation();
+  const client = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [toast, setToast] = useState<{ title: string; body: string } | null>(null);
+
+  useEffect(() => {
+    const socket = getSocket();
+    const onNotification = (n: { title: string; body: string }) => {
+      setToast(n);
+      void client.invalidateQueries();
+    };
+    socket.on('notification', onNotification);
+    return () => void socket.off('notification', onNotification);
+  }, [client]);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 6000);
+    return () => clearTimeout(timer);
+  }, [toast]);
+
   const query = useGet<{ unread: number; items: { _id: string; title: string; body: string; createdAt: string }[] }>('/auth/notifications');
   const markRead = useSend('post', '/auth/notifications/read');
   const unread = query.data?.unread ?? 0;
@@ -47,6 +68,12 @@ function Notifications() {
         <Bell className="size-5" aria-hidden />
         {unread > 0 && <span className="absolute right-1 top-1 min-w-4 rounded-full bg-danger-text px-1 text-[10px] leading-4 text-white">{unread}</span>}
       </Button>
+      {toast && (
+        <div role="status" className="fixed inset-x-4 top-16 z-50 mx-auto max-w-sm rounded-lg border border-border bg-surface p-3 shadow-overlay">
+          <p className="font-semibold">{toast.title}</p>
+          <p className="text-sm text-text-muted">{toast.body}</p>
+        </div>
+      )}
       <Sheet open={open} onClose={() => setOpen(false)} title={t('Notifications')}>
         {query.data?.items.length ? (
           <ul className="space-y-3">

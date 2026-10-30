@@ -127,6 +127,10 @@ export const ResidentProfileBody = z.object({
   emergencyContact: z.object({ name: z.string().min(1), relation: z.string().min(1), phone: zPhone }),
   occupation: z.enum(['student', 'working', 'other']).optional(),
   organizationName: z.string().max(120).optional(),
+  designation: z.string().max(120).optional(),
+  companyProofKey: z.string().optional(),
+  vehicleType: z.enum(['none', 'bike', 'car']).default('none'),
+  vehicleModel: z.string().max(60).optional(),
   vehicleNumber: z.string().max(20).optional(),
 });
 

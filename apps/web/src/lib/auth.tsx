@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api } from './api';
+import { closeSocket } from './socket';
 
 export interface Membership {
   orgId: string;
@@ -73,6 +74,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut: async () => {
         await api.post('/auth/logout').catch(() => undefined);
         api.setToken(null);
+        closeSocket();
         localStorage.removeItem(WORKSPACE_KEY);
         setMe(null);
       },

@@ -7,6 +7,7 @@ import { addDays, istDate, parsePeriod, periodOf } from '../lib/dates.js';
 import { connectDb } from '../lib/db.js';
 import { hashPassword } from '../modules/admin/service.js';
 import { Invoice, Payment } from '../modules/billing/model.js';
+import { Machine } from '../modules/community/model.js';
 import { Expense, Menu, Notice, Ticket } from '../modules/ops/model.js';
 import { Membership, Organization, Plan } from '../modules/orgs/model.js';
 import { ensurePlans } from '../modules/orgs/plans.js';
@@ -254,6 +255,7 @@ async function seed() {
       weekStart: monday.toISOString().slice(0, 10),
       days: Array.from({ length: 7 }, (_, day) => ({ day, breakfast: 'Idli, sambar', lunch: 'Rice, dal, sabzi', snacks: 'Tea, biscuits', dinner: 'Roti, paneer curry' })),
     });
+    await Machine.create({ orgId: org._id, propertyId: property._id, name: 'Washer 1' });
     await Notice.create({ orgId: org._id, propertyIds: [property._id], title: 'Water tank cleaning on Sunday', body: 'Water will be off from 10 am to 1 pm.', pinned: true, createdBy: org.ownerUserId });
   }
 

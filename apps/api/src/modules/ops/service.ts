@@ -4,6 +4,9 @@ import { Types } from 'mongoose';
 import { addDays, istDate, parsePeriod, periodOf } from '../../lib/dates.js';
 import { withTransaction } from '../../lib/db.js';
 import { AppError } from '../../lib/errors.js';
+import { logger } from '../../lib/logger.js';
+import { sendPush } from '../../lib/push.js';
+import { emitToUser } from '../../lib/realtime.js';
 import { assertTransition, TICKET_TRANSITIONS } from '../../lib/transitions.js';
 import { assertPropertyAccess, clearTenantCache, propertyScope } from '../../middleware/auth.js';
 import { Invoice, Payment } from '../billing/model.js';
@@ -17,8 +20,13 @@ import { ElectricityReading, Expense, Menu, Notice, Notification, Ticket } from 
 
 type Tenant = NonNullable<Request['tenant']>;
 
-export const notify = (userId: unknown, orgId: unknown, title: string, body: string, link?: string) =>
-  Notification.create({ userId, orgId, title, body, link });
+/** Saves the notification, updates open tabs, and pushes to the user's devices. */
+export async function notify(userId: unknown, orgId: unknown, title: string, body: string, link?: string) {
+  const notification = await Notification.create({ userId, orgId, title, body, link });
+  emitToUser(userId, 'notification', { title, body, link });
+  void sendPush(userId, { title, body, link }).catch((err) => logger.warn({ err }, 'push failed'));
+  return notification;
+}
 
 export async function createTicket(
   orgId: string,

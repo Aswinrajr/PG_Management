@@ -70,6 +70,7 @@ export function createClient({ baseUrl, fetch: doFetch = (...a) => fetch(...a), 
     setToken: (token: string | null) => {
       accessToken = token;
     },
+    getToken: () => accessToken,
     refresh,
     get: <T>(path: string) => request<T>('GET', path),
     getPage: async <T>(path: string): Promise<Page<T>> => {

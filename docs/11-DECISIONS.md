@@ -45,6 +45,12 @@ Resolves conflicts and gaps found while reviewing docs 00–10. Where this doc d
 | D27 | Exit month | No automatic refund of unused days in the exit month. The owner settles it manually. Revisit after the pilot. |
 | D28 | GST exemption check | The ≥ 90 day condition in D2 cannot be known when billing, so exemption is decided by the rent threshold alone. The CA must confirm this. |
 
+| D29 | Room design | Top-down 2D designer first (doc 09 task 3D.3). Geometry lives in `packages/types`, not a separate package. Beds and fixtures snap to a 15 cm grid. |
+| D30 | Games | Visible to residents of the same organization. Only players can read or send chat. Messages are sent over REST and delivered by Socket.IO, so they are always saved first. |
+| D31 | Washing slots | Slots are a fixed grid (06:00–23:00 IST, length set per machine), one person per slot, one open slot per machine per user. A slot not started within 15 minutes is released. The next person is told 5 minutes before the expected end, and again when it ends. |
+| D32 | Push | Web push through a service worker, plus Socket.IO for open tabs and the bell for history. |
+| D33 | Scaling chat | Socket.IO runs in the API process. Running 2 API instances needs the Redis adapter first. |
+
 ## Build order changes to doc 07
 
 - Plans model and seed: moved from 2.8–2.9 to 1.3.

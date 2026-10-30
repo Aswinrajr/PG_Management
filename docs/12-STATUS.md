@@ -6,10 +6,11 @@ What exists today, and what does not. Update this when work lands.
 
 - API: auth, tenancy, RBAC, plans, properties, stays, billing, checkout, expenses, dashboard, reports (JSON), complaints, notices, menus, staff, electricity, resident `/me`, uploads, PDFs, Super Admin, Razorpay orders and webhook, jobs, DPDP export and deletion.
 - Web: Owner, Resident and Super Admin screens at 360 px and 1280 px.
+- Room designer (2D), resident room view, resident work and vehicle details, games with live chat, washing machine slots with next-person alerts.
 
 ## Built, not proven against the real service
 
-Needs real accounts: Razorpay checkout (mocked in tests), MSG91 SMS, BullMQ scheduler (no local Redis), Docker image and CI workflow (never run here).
+Web push needs a real phone and HTTPS to confirm delivery. Needs real accounts: Razorpay checkout (mocked in tests), MSG91 SMS, BullMQ scheduler (no local Redis), Docker image and CI workflow (never run here).
 
 ## Not built
 
@@ -36,4 +37,6 @@ Needs real accounts: Razorpay checkout (mocked in tests), MSG91 SMS, BullMQ sche
 - Opening several tabs at once can sign the user out, because refresh tokens are single-use and two tabs may race.
 - shadcn/ui was not installed. `components/ui.tsx` is a smaller kit in the same style, built on Radix Dialog with native selects.
 - Most forms use the shared Zod schemas directly rather than React Hook Form.
+- Chat and alerts assume one API instance; two need the Socket.IO Redis adapter (D33).
+- Game cost is informational; money is not collected in the app.
 - Mongoose is on 8 as specified; 9 is available. Node 22 is in maintenance; plan a move to 24.

@@ -37,6 +37,9 @@ const roomSchema = new Schema(
     hasAttachedBath: { type: Boolean, default: false },
     rentPerBedPaise: Number,
     status: { type: String, enum: ['active', 'inactive'], default: 'active' },
+    widthCm: Number,
+    lengthCm: Number,
+    fixtures: [{ _id: false, id: String, type: { type: String }, xCm: Number, yCm: Number, rot: Number }],
   },
   { timestamps: true },
 );
@@ -53,6 +56,7 @@ const bedSchema = new Schema(
     currentStayId: Schema.Types.ObjectId,
     tags: [String],
     premiumPaise: { type: Number, default: 0 },
+    layout: { xCm: Number, yCm: Number, rot: Number },
   },
   { timestamps: true },
 );
