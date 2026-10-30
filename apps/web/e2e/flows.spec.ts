@@ -133,10 +133,12 @@ test('admin: console pages load and a new owner is approved', async ({ page, bro
   await owner.getByLabel('PG name').fill(orgName);
   await owner.getByRole('button', { name: 'Save and continue' }).click();
   await expect(owner.getByText('Enter a 6-digit pincode')).toBeVisible();
+  await expect(owner.getByText('This is required').first()).toBeVisible();
   await owner.getByRole('button', { name: 'Use current location' }).click();
   await expect(owner.getByLabel('City')).toHaveValue('Bengaluru');
   await expect(owner.getByLabel('Address')).toHaveValue('MG Road, Shanthala Nagar');
   await expect(owner.getByLabel('Pincode')).toHaveValue('560001');
+  await expect(owner.getByText('This is required')).toHaveCount(0);
   if (SHOTS) await owner.screenshot({ path: `${SHOTS}/${info.project.name}-signup-pg.png`, fullPage: true });
   await owner.getByRole('button', { name: 'Save and continue' }).click();
 
@@ -149,6 +151,7 @@ test('admin: console pages load and a new owner is approved', async ({ page, bro
   await expect(owner.getByRole('button', { name: 'Preview Owner ID proof 2' })).toBeVisible();
   await owner.getByRole('button', { name: 'Preview Owner ID proof 1' }).click();
   await expect(owner.getByRole('dialog').getByRole('img')).toBeVisible();
+  expect(await owner.getByRole('dialog').getByRole('img').evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
   await owner.getByRole('button', { name: 'Close' }).click();
 
   if (SHOTS) await owner.screenshot({ path: `${SHOTS}/${info.project.name}-signup-owner.png`, fullPage: true });

@@ -70,7 +70,7 @@ export function AmenityPicker({ value, onChange }: { value: string[]; onChange: 
   );
 }
 
-export const problemsOf = (issues: { path: PropertyKey[]; message: string }[]) => Object.fromEntries(issues.map((i) => [String(i.path.at(-1)), i.message]));
+export const problemsOf = (issues: { path: PropertyKey[]; message: string }[]) => Object.fromEntries(issues.map((i) => [String(i.path.at(-1)), i.message.startsWith('Too small') ? 'This is required' : i.message]));
 
 export function PropertyForm({ onDone }: { onDone: (id: string) => void }) {
   const { t } = useTranslation();

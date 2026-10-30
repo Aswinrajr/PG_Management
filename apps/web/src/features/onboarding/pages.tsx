@@ -62,6 +62,10 @@ interface PgForm {
 function PgStep({ form, setForm, onSave, busy, error }: { form: PgForm; setForm: (f: PgForm) => void; onSave: () => void; busy: boolean; error: Error | null }) {
   const { t } = useTranslation();
   const [problems, setProblems] = useState<Record<string, string>>({});
+  const update = (next: PgForm) => {
+    setProblems({}); // old errors go as soon as the owner edits
+    setForm(next);
+  };
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -76,15 +80,15 @@ function PgStep({ form, setForm, onSave, busy, error }: { form: PgForm; setForm:
   return (
     <form onSubmit={submit} className="space-y-3">
       <div className="grid gap-3 md:grid-cols-3">
-        <Field label={t('PG name')} error={problems.name}><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
+        <Field label={t('PG name')} error={problems.name}><Input value={form.name} onChange={(e) => update({ ...form, name: e.target.value })} /></Field>
         <Field label={t('Type')}>
-          <Select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value })}>
+          <Select value={form.type} onChange={(e) => update({ ...form, type: e.target.value })}>
             <option value="boys">{t('Boys')}</option><option value="girls">{t('Girls')}</option><option value="coliving">{t('Co-living')}</option><option value="mixed">{t('Mixed')}</option>
           </Select>
         </Field>
-        <Field label={t('GSTIN (optional)')} error={problems.gstin}><Input value={form.gstin} onChange={(e) => setForm({ ...form, gstin: e.target.value.toUpperCase() })} /></Field>
+        <Field label={t('GSTIN (optional)')} error={problems.gstin}><Input value={form.gstin} onChange={(e) => update({ ...form, gstin: e.target.value.toUpperCase() })} /></Field>
       </div>
-      <LocationPicker value={form.address} onChange={(address) => setForm({ ...form, address })} errors={problems} />
+      <LocationPicker value={form.address} onChange={(address) => update({ ...form, address })} errors={problems} />
       <AmenityPicker value={form.amenities} onChange={(amenities) => setForm({ ...form, amenities })} />
       <FormError error={error} />
       <Footer busy={busy} label={t('Save and continue')} />
