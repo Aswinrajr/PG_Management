@@ -1,7 +1,7 @@
 import { randomToken } from '../../lib/crypto.js';
 import { AppError } from '../../lib/errors.js';
 import { withTransaction } from '../../lib/db.js';
-import type { CreateOrgBody, UpdateOrgBody } from '@roomora/types';
+import { KYC_REQUIRED_DOCS, type CreateOrgBody, type UpdateOrgBody } from '@roomora/types';
 import { AuditLog, Membership, Organization, Plan } from './model.js';
 
 const slugify = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40);
@@ -43,11 +43,18 @@ export async function updateOrg(orgId: string, input: UpdateOrgBody) {
   return org;
 }
 
-export async function submitKyc(orgId: string, docs: { type: string; key: string }[]) {
+export async function submitKyc(orgId: string, input: { docs: { type: string; key: string }[]; submit: boolean }) {
   const org = await Organization.findById(orgId);
   if (!org) throw new AppError('NOT_FOUND', 'Not found', 404);
   if (org.kyc?.status === 'approved') throw new AppError('CONFLICT', 'KYC is already approved', 409);
-  org.set('kyc', { status: 'pending_review', docs });
+  org.set('kyc.docs', input.docs);
+  if (input.submit) {
+    const missing = KYC_REQUIRED_DOCS.filter((type) => !input.docs.some((d) => d.type === type));
+    if (missing.length) throw new AppError('VALIDATION_ERROR', 'Please add all the required documents', 400, { missing });
+    org.set('kyc.status', 'pending_review');
+    org.set('kyc.rejectionReason', undefined);
+    org.kyc!.history.push({ at: new Date(), action: 'submitted' });
+  }
   await org.save();
   return org.kyc;
 }

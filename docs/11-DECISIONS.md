@@ -58,6 +58,8 @@ Resolves conflicts and gaps found while reviewing docs 00–10. Where this doc d
 | D37 | Wording | Screens say PG, not business or property. In code the models stay `organization` and `property`. Signup collects the PG once: one step creates both the organization and its first property. |
 | D38 | Maps | Leaflet with OpenStreetMap tiles and Nominatim lookups, no API key. Their public servers are for light use, so production must move to a paid or self-hosted provider. Location is stored in `address.geo`. |
 
+| D39 | Signup and review | Three steps: PG, owner details (photo, name, mobile, email, ID), PG documents. Every step saves to the server, so Back and refresh keep the data. Admin either approves or sends back with comments; the owner reopens the same filled-in form. All steps and comments are kept in `kyc.history`. |
+
 ## Build order changes to doc 07
 
 - Plans model and seed: moved from 2.8–2.9 to 1.3.

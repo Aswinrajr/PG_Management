@@ -6,6 +6,7 @@ import { decrypt, randomToken, sha256 } from '../../lib/crypto.js';
 import { AppError } from '../../lib/errors.js';
 import { escapeRegex } from '../../lib/pagination.js';
 import { env } from '../../config/env.js';
+import { sendMail } from '../../lib/mail.js';
 import { signAccessToken } from '../auth/tokens.js';
 import { Invoice } from '../billing/model.js';
 import { notify } from '../ops/service.js';
@@ -91,7 +92,7 @@ export async function orgDetail(id: string) {
     Bed.countDocuments({ orgId: oid }),
     Membership.find({ orgId: oid, role: { $ne: 'resident' } }).lean(),
   ]);
-  const users = await User.find({ _id: { $in: members.map((m) => m.userId) } }, { name: 1, phone: 1 }).lean();
+  const users = await User.find({ _id: { $in: members.map((m) => m.userId) } }, { name: 1, phone: 1, email: 1, avatarKey: 1 }).lean();
   return { org, plan, properties, usage: { properties: properties.length, beds }, users: members.map((m) => ({ ...m, user: users.find((u) => String(u._id) === String(m.userId)) })) };
 }
 
@@ -106,9 +107,12 @@ export async function decideKyc(id: string, input: { decision: 'approve' | 'reje
   if (org.kyc?.status !== 'pending_review') throw new AppError('CONFLICT', 'This KYC is not waiting for review', 409);
   if (input.decision === 'reject' && !input.reason) throw new AppError('VALIDATION_ERROR', 'A reason is required', 400);
   org.set('kyc.status', input.decision === 'approve' ? 'approved' : 'rejected');
+  org.kyc!.history.push({ at: new Date(), action: input.decision === 'approve' ? 'approved' : 'sent_back', comment: input.reason });
   org.set('kyc.rejectionReason', input.reason);
   org.set('kyc.reviewedBy', actor.userId);
   org.set('kyc.reviewedAt', new Date());
+  const title = input.decision === 'approve' ? 'Your account is approved' : 'Your details need changes';
+  const body = input.decision === 'approve' ? 'You can now set up rooms and add residents.' : (input.reason ?? '');
   // D35: approval opens the account and starts the trial.
   if (input.decision === 'approve' && org.status === 'pending') {
     org.status = 'trial';
@@ -118,10 +122,12 @@ export async function decideKyc(id: string, input: { decision: 'approve' | 'reje
   await notify(
     org.ownerUserId,
     id,
-    input.decision === 'approve' ? 'Your account is approved' : 'Your documents need attention',
-    input.decision === 'approve' ? 'You can now set up rooms and add residents.' : (input.reason ?? ''),
+    title,
+    body,
     '/app/dashboard',
   );
+  const owner = await User.findById(org.ownerUserId, { email: 1 }).lean();
+  await sendMail(owner?.email, title, body);
   await audit({ actorUserId: actor.userId, orgId: id, action: `org.kyc.${input.decision}`, targetType: 'organization', targetId: org._id, meta: { reason: input.reason }, ip: actor.ip });
   return org;
 }

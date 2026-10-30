@@ -157,11 +157,14 @@ export function LocationPicker({ value, onChange, errors = {} }: { value: PgAddr
   const set = (key: 'line1' | 'city' | 'state' | 'pincode') => (e: { target: { value: string } }) => onChange({ ...value, [key]: e.target.value });
 
   return (
-    <div className="space-y-3">
+    <div className="grid gap-3 lg:grid-cols-2">
+      <div className="space-y-2 lg:order-2">
       <Button variant="secondary" block loading={busy === 'locate'} onClick={useCurrentLocation}><LocateFixed className="size-4" aria-hidden /> {t('Use current location')}</Button>
-      <div ref={box} role="application" aria-label={t('Map. Tap to place the PG, or drag the pin.')} className="isolate h-64 w-full rounded-md border border-border md:h-72" />
+      <div ref={box} role="application" aria-label={t('Map. Tap to place the PG, or drag the pin.')} className="isolate h-56 w-full rounded-md border border-border lg:h-64" />
       <p className="text-xs text-text-muted">{value.geo ? t('Drag the pin if it is not exactly on your PG.') : t('Tap the map where your PG is.')}</p>
       <FormError error={error} />
+      </div>
+      <div className="space-y-3">
       <Field label={t('Address')} error={errors.line1}><Input autoComplete="street-address" value={value.line1} onChange={set('line1')} /></Field>
       <div className="grid gap-3 sm:grid-cols-3">
         <Field label={t('City')} error={errors.city}><Input value={value.city} onChange={set('city')} /></Field>
@@ -169,6 +172,7 @@ export function LocationPicker({ value, onChange, errors = {} }: { value: PgAddr
         <Field label={t('Pincode')} error={errors.pincode}><Input inputMode="numeric" maxLength={6} value={value.pincode} onChange={set('pincode')} /></Field>
       </div>
       <Button variant="secondary" block loading={busy === 'search'} onClick={() => void findAddress()}><Search className="size-4" aria-hidden /> {t('Find this address on the map')}</Button>
+      </div>
     </div>
   );
 }

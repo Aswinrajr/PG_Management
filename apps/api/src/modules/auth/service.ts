@@ -78,11 +78,12 @@ export async function loadMemberships(userId: string) {
   }));
 }
 
-export const publicUser = (user: { _id: unknown; phone: string; name?: string | null; email?: string | null; preferredLanguage?: string | null; isSuperAdmin?: boolean | null }) => ({
+export const publicUser = (user: { _id: unknown; phone: string; name?: string | null; email?: string | null; avatarKey?: string | null; preferredLanguage?: string | null; isSuperAdmin?: boolean | null }) => ({
   id: String(user._id),
   phone: user.phone,
   name: user.name ?? '',
   email: user.email ?? undefined,
+  avatarKey: user.avatarKey ?? undefined,
   preferredLanguage: user.preferredLanguage ?? 'en',
   isSuperAdmin: Boolean(user.isSuperAdmin),
 });

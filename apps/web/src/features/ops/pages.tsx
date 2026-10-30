@@ -339,27 +339,9 @@ export function ReportsPage() {
   );
 }
 
-export function KycCard({ org }: { org: any }) {
+function KycCard({ org }: { org: any }) {
   const { t } = useTranslation();
-  const { orgPath, workspace } = useAuth();
-  const [ownerId, setOwnerId] = useState('');
-  const [proof, setProof] = useState('');
-  const save = useSend('put', orgPath('/kyc'));
-  const status = org.kyc?.status;
-  return (
-    <Card>
-      <CardTitle action={<StatusBadge kind="kyc" status={status} />}>{t('PG documents')}</CardTitle>
-      {status === 'rejected' && <p className="mb-2 text-danger-text">{org.kyc.rejectionReason}</p>}
-      {status !== 'approved' && status !== 'pending_review' && (
-        <div className="space-y-3">
-          <FileUpload label={t('Owner ID proof')} kind="kyc" orgId={workspace!.orgId} value={ownerId} onChange={setOwnerId} />
-          <FileUpload label={t('Property proof')} kind="kyc" orgId={workspace!.orgId} value={proof} onChange={setProof} />
-          <FormError error={save.error} />
-          <Button disabled={!ownerId || !proof} loading={save.isPending} onClick={() => save.mutate({ docs: [{ type: 'owner_id', key: ownerId }, { type: 'property_proof', key: proof }] })}>{t('Submit for review')}</Button>
-        </div>
-      )}
-    </Card>
-  );
+  return <Card><CardTitle action={<StatusBadge kind="kyc" status={org.kyc?.status} />}>{t('PG documents')}</CardTitle><p className="text-text-muted">{t('Reviewed by the Roomora team.')}</p></Card>;
 }
 
 function PaymentsCard({ org }: { org: any }) {

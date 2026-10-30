@@ -2,7 +2,7 @@ import { Building2, BedDouble, CircleDollarSign, FileCheck2, IndianRupee, Percen
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router';
-import { Button, Card, CardTitle, DataList, EmptyState, Field, FormError, Input, Money, PageHeader, Pagination, Query, Select, Sheet, StatCard, StatusBadge, Textarea } from '../../components/ui';
+import { Button, Card, CardTitle, DataList, EmptyState, Field, FileThumb, FormError, Input, Money, PageHeader, Pagination, Query, Select, Sheet, StatCard, StatusBadge, Textarea } from '../../components/ui';
 import { api, useGet, useGetPage, useSend } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { mapLink } from '../properties/location';
@@ -182,34 +182,54 @@ export function OrganizationDetailPage() {
   );
 }
 
+const DOC_LABELS: Record<string, string> = { owner_id: 'Owner ID proof', property_proof: 'Property proof', pg_photo: 'PG photos', gst_certificate: 'GST certificate' };
+
 function KycReview({ org, onDone }: { org: any; onDone: () => void }) {
   const { t } = useTranslation();
   const detail = useGet<any>(`/admin/orgs/${org._id}`);
   const decide = useSend<{ decision: string; reason?: string }>('post', `/admin/orgs/${org._id}/kyc`);
-  const [reason, setReason] = useState('');
-  const open = async (key: string) => window.open(URL.createObjectURL(await api.blob(`/files/${key}`)), '_blank');
+  const [comment, setComment] = useState('');
   const owner = detail.data?.users.find((u: any) => u.role === 'owner')?.user;
+  const docs: { type: string; key: string }[] = org.kyc.docs;
+  const photo = docs.find((d) => d.type === 'owner_photo');
   return (
-    <Card>
-      <CardTitle>{org.name}</CardTitle>
-      <dl className="mb-3 grid gap-2 text-sm sm:grid-cols-2">
-        <div><dt className="text-text-muted">{t('Owner')}</dt><dd>{owner?.name || '—'} {displayPhone(owner?.phone)}</dd></div>
-        <div><dt className="text-text-muted">{t('Location')}</dt><dd>{org.city}, {org.state}</dd></div>
+    <Card className="space-y-4">
+      <div className="flex items-center gap-3">
+        <div className="w-20 shrink-0">{photo ? <FileThumb fileKey={photo.key} alt={t('Owner photo')} /> : <div className="aspect-square rounded-md bg-surface-muted" />}</div>
+        <div className="min-w-0">
+          <h2 className="truncate text-lg font-semibold">{owner?.name || t('Owner')}</h2>
+          <p className="text-text-muted">{displayPhone(owner?.phone)}</p>
+          {owner?.email && <p className="truncate text-text-muted">{owner.email}</p>}
+        </div>
+      </div>
+      <dl className="grid gap-2 text-sm sm:grid-cols-3">
+        <div><dt className="text-text-muted">{t('PG')}</dt><dd>{org.name}</dd></div>
         <div><dt className="text-text-muted">{t('Type')}</dt><dd className="capitalize">{t(org.type)}</dd></div>
         <div><dt className="text-text-muted">{t('GSTIN')}</dt><dd>{org.gstin || '—'}</dd></div>
-        <div className="sm:col-span-2"><dt className="text-text-muted">{t('PGs')}</dt><dd>{detail.data?.properties.map((p: any) => {
+        <div className="sm:col-span-3"><dt className="text-text-muted">{t('Address')}</dt><dd>{detail.data?.properties.map((p: any) => {
           const link = mapLink(p.address?.geo);
-          return <span key={p._id} className="block">{p.name}{p.address?.line1 ? `, ${p.address.line1}` : ''} {link && <a href={link} target="_blank" rel="noreferrer" className="text-primary">{t('View on map')}</a>}</span>;
+          return <span key={p._id} className="block">{[p.address?.line1, p.address?.city, p.address?.state, p.address?.pincode].filter(Boolean).join(', ')} {link && <a href={link} target="_blank" rel="noreferrer" className="text-primary">{t('View on map')}</a>}</span>;
         })}</dd></div>
       </dl>
-      <div className="mb-3 flex flex-wrap gap-2">
-        {org.kyc.docs.map((d: any) => <Button key={d.key} variant="secondary" onClick={() => void open(d.key)}>{t(d.type)}</Button>)}
-      </div>
-      <Field label={t('Reason, if rejecting')}><Textarea rows={2} value={reason} onChange={(e) => setReason(e.target.value)} /></Field>
+      {Object.keys(DOC_LABELS).map((type) => {
+        const files = docs.filter((d) => d.type === type);
+        return files.length > 0 && (
+          <div key={type}>
+            <p className="mb-1 text-xs font-medium text-text-muted">{t(DOC_LABELS[type])}</p>
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">{files.map((d, i) => <FileThumb key={d.key} fileKey={d.key} alt={`${t(DOC_LABELS[type])} ${i + 1}`} />)}</div>
+          </div>
+        );
+      })}
+      {org.kyc.history?.length > 0 && (
+        <ol className="space-y-1 border-t border-border pt-2 text-xs text-text-muted">
+          {org.kyc.history.map((h: any, i: number) => <li key={i}>{formatDate(h.at)}: {t(h.action)}{h.comment ? ` · ${h.comment}` : ''}</li>)}
+        </ol>
+      )}
+      <Field label={t('Comments for the owner')} hint={t('Needed when sending back.')}><Textarea rows={2} value={comment} onChange={(e) => setComment(e.target.value)} /></Field>
       <FormError error={decide.error} />
-      <div className="mt-3 flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button loading={decide.isPending} onClick={() => decide.mutate({ decision: 'approve' }, { onSuccess: onDone })}>{t('Approve')}</Button>
-        <Button variant="danger" onClick={() => decide.mutate({ decision: 'reject', reason }, { onSuccess: onDone })}>{t('Reject')}</Button>
+        <Button variant="secondary" disabled={comment.trim().length < 3} onClick={() => decide.mutate({ decision: 'reject', reason: comment }, { onSuccess: onDone })}>{t('Send back with comments')}</Button>
       </div>
     </Card>
   );

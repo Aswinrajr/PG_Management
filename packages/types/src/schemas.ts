@@ -47,8 +47,11 @@ export const UpdateOrgBody = CreateOrgBody.partial().extend({
     .partial()
     .optional(),
 });
+export const KYC_REQUIRED_DOCS = ['owner_photo', 'owner_id', 'property_proof'] as const;
+
 export const SubmitKycBody = z.object({
-  docs: z.array(z.object({ type: z.enum(['owner_id', 'property_proof', 'gst_certificate']), key: z.string().min(1) })).min(1),
+  docs: z.array(z.object({ type: z.enum(['owner_photo', 'owner_id', 'property_proof', 'pg_photo', 'gst_certificate']), key: z.string().min(1) })).max(30),
+  submit: z.boolean().default(true), // false saves a draft
 });
 
 export type CreateOrgBody = z.infer<typeof CreateOrgBody>;

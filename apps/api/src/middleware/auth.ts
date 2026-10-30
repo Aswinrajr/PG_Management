@@ -36,7 +36,7 @@ export const clearTenantCache = (userId: string, orgId: string) => kv.del(`tenan
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 const isOnboardingWrite = (method: string, path: string) =>
-  (method === 'PUT' && path === '/kyc') || (method === 'POST' && path === '/properties') || (method === 'PATCH' && path === '/');
+  (method === 'PUT' && path === '/kyc') || (method === 'POST' && path === '/properties') || (method === 'PATCH' && (path === '/' || /^\/properties\/[a-f\d]{24}$/i.test(path)));
 
 export async function resolveTenant(req: Request, _res: Response, next: NextFunction) {
   const orgId = req.params.orgId as string;

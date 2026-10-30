@@ -131,19 +131,38 @@ test('admin: console pages load and a new owner is approved', async ({ page, bro
   await owner.getByLabel('6-digit code').fill('123456');
   await expect(owner).toHaveURL(/onboarding/);
   await owner.getByLabel('PG name').fill(orgName);
-  await owner.getByRole('button', { name: 'Next' }).click();
+  await owner.getByRole('button', { name: 'Save and continue' }).click();
   await expect(owner.getByText('Enter a 6-digit pincode')).toBeVisible();
   await owner.getByRole('button', { name: 'Use current location' }).click();
   await expect(owner.getByLabel('City')).toHaveValue('Bengaluru');
   await expect(owner.getByLabel('Address')).toHaveValue('MG Road, Shanthala Nagar');
   await expect(owner.getByLabel('Pincode')).toHaveValue('560001');
-  await owner.getByRole('button', { name: 'Next' }).click();
-  await upload(owner, 'Owner ID proof');
-  await expect(owner.getByText('Uploaded')).toHaveCount(1);
+  if (SHOTS) await owner.screenshot({ path: `${SHOTS}/${info.project.name}-signup-pg.png`, fullPage: true });
+  await owner.getByRole('button', { name: 'Save and continue' }).click();
+
+  // Owner details: the mobile is already filled in, and several files show previews.
+  await expect(owner.getByLabel('Mobile number')).toHaveValue(`+91 ${phone}`);
+  await owner.getByLabel('Owner name').fill('Test Owner');
+  await upload(owner, 'Owner photo');
+  await expect(owner.getByRole('button', { name: 'Preview Owner photo 1' })).toBeVisible();
+  await owner.getByLabel('Owner ID proof').setInputFiles([1, 2].map((n) => ({ name: `id${n}.png`, mimeType: 'image/png', buffer: PNG })));
+  await expect(owner.getByRole('button', { name: 'Preview Owner ID proof 2' })).toBeVisible();
+  await owner.getByRole('button', { name: 'Preview Owner ID proof 1' }).click();
+  await expect(owner.getByRole('dialog').getByRole('img')).toBeVisible();
+  await owner.getByRole('button', { name: 'Close' }).click();
+
+  if (SHOTS) await owner.screenshot({ path: `${SHOTS}/${info.project.name}-signup-owner.png`, fullPage: true });
+  // Back keeps everything, then forward again.
+  await owner.getByRole('button', { name: 'Back' }).click();
+  await expect(owner.getByLabel('PG name')).toHaveValue(orgName);
+  await expect(owner.getByLabel('City')).toHaveValue('Bengaluru');
+  await owner.getByRole('button', { name: 'Save and continue' }).click();
+  await expect(owner.getByLabel('Owner name')).toHaveValue('Test Owner');
+  await owner.getByRole('button', { name: 'Save and continue' }).click();
+
   await upload(owner, 'Property proof');
-  await expect(owner.getByText('Uploaded')).toHaveCount(2);
-  await owner.getByRole('button', { name: 'Submit' }).click();
-  await owner.getByRole('link', { name: 'Continue' }).click();
+  await expect(owner.getByRole('button', { name: 'Preview Property proof 1' })).toBeVisible();
+  await owner.getByRole('button', { name: 'Submit for approval' }).click();
   await expect(owner.getByRole('heading', { name: 'Waiting for approval' })).toBeVisible();
   await owner.goto('/app/residents');
   await expect(owner.getByRole('heading', { name: 'Waiting for approval' })).toBeVisible();
@@ -156,11 +175,29 @@ test('admin: console pages load and a new owner is approved', async ({ page, bro
   await page.goto('/admin/kyc');
   await page.getByRole('button', { name: orgName }).click();
   await expect(page.getByRole('link', { name: 'View on map' })).toBeVisible();
+  await expect(page.getByText('Test Owner')).toBeVisible();
+  if (SHOTS) await page.screenshot({ path: `${SHOTS}/${info.project.name}-admin-review.png`, fullPage: true });
+  await page.getByLabel('Comments for the owner').fill('ID photo is blurry');
+  await page.getByRole('button', { name: 'Send back with comments' }).click();
+  await expect(page.getByRole('button', { name: orgName })).toHaveCount(0);
+
+  // The owner sees the comment on a filled-in form, fixes it and sends it again.
+  await owner.getByRole('button', { name: 'Check status' }).click();
+  await expect(owner.getByText('ID photo is blurry')).toBeVisible();
+  if (SHOTS) await owner.screenshot({ path: `${SHOTS}/${info.project.name}-signup-sent-back.png`, fullPage: true });
+  await expect(owner.getByLabel('PG name')).toHaveValue(orgName);
+  await owner.getByRole('button', { name: 'Save and continue' }).click();
+  await owner.getByRole('button', { name: 'Save and continue' }).click();
+  await owner.getByRole('button', { name: 'Send again for approval' }).click();
+  await expect(owner.getByRole('heading', { name: 'Waiting for approval' })).toBeVisible();
+
+  await page.reload();
+  await page.getByRole('button', { name: orgName }).click();
   await page.getByRole('button', { name: 'Approve' }).click();
   await expect(page.getByRole('button', { name: orgName })).toHaveCount(0);
 
   await owner.getByRole('button', { name: 'Check status' }).click();
-  await expect(owner.getByRole('heading', { name: 'Residents', exact: true })).toBeVisible();
+  await expect(owner.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
   await context.close();
 
   await page.goto('/admin/organizations');

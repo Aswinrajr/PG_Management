@@ -11,7 +11,7 @@ export interface Membership {
 }
 
 export interface Me {
-  user: { id: string; phone: string; name: string; isSuperAdmin: boolean; preferredLanguage: string };
+  user: { id: string; phone: string; name: string; email?: string; avatarKey?: string; isSuperAdmin: boolean; preferredLanguage: string };
   memberships: Membership[];
   isSuperAdmin: boolean;
   impersonatedBy?: string;

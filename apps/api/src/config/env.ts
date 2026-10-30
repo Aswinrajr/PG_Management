@@ -17,6 +17,8 @@ export const envSchema = z
     OTP_DEV_MODE: flag,
     STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
     RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
+    RESEND_API_KEY: z.string().optional().transform((v) => v || undefined),
+    MAIL_FROM: z.string().default('Roomora <no-reply@roomora.in>'),
     VAPID_PUBLIC_KEY: z.string().optional().transform((v) => v || undefined),
     VAPID_PRIVATE_KEY: z.string().optional().transform((v) => v || undefined),
   })

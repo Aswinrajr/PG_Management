@@ -71,8 +71,27 @@ describe('org access', () => {
     const a = await pendingOwner();
     await api(a.token).get(`/org/${a.orgId}`).expect(200);
     await api(a.token).post(`/org/${a.orgId}/properties`).send({ name: 'Home', type: 'boys', address: { line1: 'x', city: 'y', state: 'z', pincode: '560001' } }).expect(201);
-    await api(a.token).put(`/org/${a.orgId}/kyc`).send({ docs: [{ type: 'owner_id', key: 'k' }] }).expect(200);
+    await api(a.token).put(`/org/${a.orgId}/kyc`).send({ docs: [{ type: 'owner_photo', key: 'p' }, { type: 'owner_id', key: 'k' }, { type: 'property_proof', key: 'q' }] }).expect(200);
     await api(a.token).post(`/org/${a.orgId}/expenses`).send({}).expect(403);
+  });
+
+  it('saves drafts, and refuses to submit without every document', async () => {
+    const a = await pendingOwner();
+    const client = api(a.token);
+    await client.put(`/org/${a.orgId}/kyc`).send({ docs: [{ type: 'owner_id', key: 'k' }], submit: false }).expect(200);
+    const draft = (await client.get(`/org/${a.orgId}`).expect(200)).body.data.kyc;
+    expect(draft).toMatchObject({ status: 'not_submitted', docs: [{ type: 'owner_id', key: 'k' }] });
+    const res = await client.put(`/org/${a.orgId}/kyc`).send({ docs: [{ type: 'owner_id', key: 'k' }] }).expect(400);
+    expect(res.body.error.details.missing).toEqual(['owner_photo', 'property_proof']);
+  });
+
+  it('lets a pending owner correct their PG details', async () => {
+    const a = await pendingOwner();
+    const client = api(a.token);
+    const property = (await client.post(`/org/${a.orgId}/properties`).send({ name: 'Home', type: 'boys', address: { line1: 'x', city: 'y', state: 'z', pincode: '560001' } }).expect(201)).body.data;
+    await client.patch(`/org/${a.orgId}/properties/${property._id}`).send({ name: 'New name' }).expect(200);
+    await client.patch(`/org/${a.orgId}`).send({ name: 'New name' }).expect(200);
+    await client.put(`/org/${a.orgId}/properties/${property._id}/rent-rules`).send({}).expect(403);
     await api(a.token).post(`/org/${a.orgId}/stays`).send({}).expect(403);
   });
 

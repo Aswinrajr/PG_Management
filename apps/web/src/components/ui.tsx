@@ -1,7 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
 import type { UseQueryResult } from '@tanstack/react-query';
 import {
-  AlertCircle, BedSingle, CalendarClock, CheckCircle2, ChevronRight, CircleDashed, Clock, Inbox, Loader2, LogOut, RotateCcw,
+  AlertCircle, ImagePlus, FileText, BedSingle, CalendarClock, CheckCircle2, ChevronRight, CircleDashed, Clock, Inbox, Loader2, LogOut, RotateCcw,
   User, Wrench, X, XCircle, type LucideIcon,
 } from 'lucide-react';
 import { useEffect, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode, type Ref, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
@@ -367,6 +367,104 @@ export function FileUpload({ label, kind, orgId, value, onChange }: { label: str
       {busy && <span className="text-xs text-text-muted">{t('Uploading…')}</span>}
       {value && !busy && <span className="flex items-center gap-1 text-xs text-success-text"><CheckCircle2 className="size-3" aria-hidden /> {t('Uploaded')}</span>}
     </Field>
+  );
+}
+
+function useFileUrl(fileKey: string) {
+  const [state, setState] = useState<{ url?: string; failed?: boolean }>({});
+  useEffect(() => {
+    let created: string | undefined;
+    void api.blob(`/files/${fileKey}`)
+      .then((blob) => {
+        created = URL.createObjectURL(blob);
+        setState({ url: created });
+      })
+      .catch(() => setState({ failed: true }));
+    return () => {
+      if (created) URL.revokeObjectURL(created);
+    };
+  }, [fileKey]);
+  return state;
+}
+
+/** Thumbnail of a protected file. Click for a large preview; PDFs open in a new tab. */
+export function FileThumb({ fileKey, alt, onRemove }: { fileKey: string; alt: string; onRemove?: () => void }) {
+  const { t } = useTranslation();
+  const { url, failed } = useFileUrl(fileKey);
+  const [open, setOpen] = useState(false);
+  const pdf = fileKey.endsWith('.pdf');
+  return (
+    <div className="relative aspect-square w-full overflow-hidden rounded-md border border-border bg-surface-muted">
+      {failed ? <span className="flex h-full items-center justify-center p-1 text-center text-xs text-text-muted">{t('Preview unavailable')}</span> : !url ? <Skeleton className="h-full w-full" /> : (
+        <button type="button" aria-label={t('Preview {{name}}', { name: alt })} className="block h-full w-full" onClick={() => (pdf ? window.open(url, '_blank') : setOpen(true))}>
+          {pdf ? <span className="flex h-full flex-col items-center justify-center gap-1 text-xs text-text-muted"><FileText className="size-7" aria-hidden /> PDF</span> : <img src={url} alt={alt} className="h-full w-full object-cover" />}
+        </button>
+      )}
+      {onRemove && (
+        <button type="button" aria-label={t('Remove {{name}}', { name: alt })} onClick={onRemove} className="absolute right-1 top-1 flex size-7 items-center justify-center rounded-full bg-slate-950/70 text-white">
+          <X className="size-4" aria-hidden />
+        </button>
+      )}
+      <Sheet open={open} onClose={() => setOpen(false)} title={alt}>
+        {url && <img src={url} alt={alt} className="w-full rounded-md" />}
+      </Sheet>
+    </div>
+  );
+}
+
+/** Add several files at once, or drag them in. Each shows a preview and can be removed. */
+export function MultiUpload({ label, hint, kind, orgId, keys, onChange, max = 6, imagesOnly }: {
+  label: string; hint?: string; kind: string; orgId: string; keys: string[]; onChange: (keys: string[]) => void; max?: number; imagesOnly?: boolean;
+}) {
+  const { t } = useTranslation();
+  const [busy, setBusy] = useState(0);
+  const [error, setError] = useState<Error | null>(null);
+  const single = max === 1;
+
+  async function add(files: File[]) {
+    const room = single ? 1 : max - keys.length;
+    const picked = files.slice(0, room);
+    setError(files.length > room ? new Error(t('You can add up to {{max}}.', { max })) : null);
+    setBusy(picked.length);
+    const added: string[] = [];
+    for (const file of picked) {
+      try {
+        added.push((await api.upload(file, kind, orgId)).key);
+      } catch (err) {
+        setError(err as Error);
+      }
+      setBusy((n) => n - 1);
+    }
+    if (added.length) onChange(single ? added : [...keys, ...added]);
+  }
+
+  return (
+    <div>
+      <p className="text-xs font-medium text-text-muted">{label}</p>
+      {hint && <p className="text-xs text-text-muted">{hint}</p>}
+      <div className={cx('mt-1 grid gap-2', single ? 'grid-cols-1' : 'grid-cols-3 sm:grid-cols-5 lg:grid-cols-6')}>
+        {keys.map((key, i) => <FileThumb key={key} fileKey={key} alt={`${label} ${i + 1}`} onRemove={() => onChange(keys.filter((k) => k !== key))} />)}
+        {Array.from({ length: busy }, (_, i) => <Skeleton key={i} className="aspect-square w-full" />)}
+        {(keys.length < max) && !busy && (
+          <label className="relative flex aspect-square w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-md border-2 border-dashed border-border text-center text-xs text-text-muted hover:border-primary hover:text-primary">
+            <ImagePlus className="size-6" aria-hidden />
+            {t('Add')}
+            <input
+              type="file"
+              aria-label={label}
+              multiple={!single}
+              accept={imagesOnly ? 'image/*' : 'image/*,application/pdf'}
+              className="absolute inset-0 cursor-pointer opacity-0"
+              onChange={(e) => {
+                void add(Array.from(e.target.files ?? []));
+                e.target.value = '';
+              }}
+            />
+          </label>
+        )}
+      </div>
+      <FormError error={error} />
+    </div>
   );
 }
 

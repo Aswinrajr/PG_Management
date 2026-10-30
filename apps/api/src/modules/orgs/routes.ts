@@ -29,7 +29,7 @@ tenantRouter.patch('/', requirePermission('org.update'), validate({ body: Update
 });
 
 tenantRouter.put('/kyc', requirePermission('org.update'), validate({ body: SubmitKycBody }), async (req, res) => {
-  res.json({ success: true, data: await submitKyc(req.tenant!.orgId, req.valid.body.docs) });
+  res.json({ success: true, data: await submitKyc(req.tenant!.orgId, req.valid.body) });
 });
 
 tenantRouter.put('/razorpay', requirePermission('org.billing'), validate({ body: ConnectRazorpayBody }), async (req, res) => {

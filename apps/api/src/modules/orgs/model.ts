@@ -17,6 +17,7 @@ const orgSchema = new Schema(
       status: { type: String, enum: KYC_STATUSES, default: 'not_submitted' },
       docs: [{ _id: false, type: { type: String }, key: String }],
       rejectionReason: String,
+      history: [{ _id: false, at: Date, action: String, comment: String }],
       reviewedBy: Schema.Types.ObjectId,
       reviewedAt: Date,
     },
