@@ -1,58 +1,68 @@
-import { CreateOrgBody } from '@roomora/types';
+import { CreateOrgBody, CreatePropertyBody } from '@roomora/types';
 import { Clock, XCircle } from 'lucide-react';
 import { useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, Navigate } from 'react-router';
 import { Button, Card, Field, FileUpload, FormError, Input, PageHeader, Query, Select } from '../../components/ui';
-import { useGet, useSend } from '../../lib/api';
+import { api, useGet, useSend } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { KycCard } from '../ops/pages';
-import { PropertyForm } from '../properties/pages';
+import { EMPTY_ADDRESS, LocationPicker } from '../properties/location';
+import { AmenityPicker, problemsOf } from '../properties/pages';
 
-const STEPS = ['Your business', 'First property', 'Documents', 'Submitted'];
+const STEPS = ['Your PG', 'Documents', 'Submitted'];
 
-function BusinessStep({ onDone }: { onDone: () => void }) {
+function PgStep({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation();
   const { reload, setWorkspace } = useAuth();
-  const [form, setForm] = useState({ name: '', type: 'coliving', city: '', state: '', gstin: '' });
+  const [name, setName] = useState('');
+  const [type, setType] = useState('coliving');
+  const [gstin, setGstin] = useState('');
+  const [amenities, setAmenities] = useState<string[]>([]);
+  const [address, setAddress] = useState(EMPTY_ADDRESS);
+  const [orgId, setOrgId] = useState<string | null>(null); // a failed second call must not create a second org
   const [problems, setProblems] = useState<Record<string, string>>({});
-  const save = useSend('post', '/orgs');
-  const bind = (key: keyof typeof form) => ({ value: form[key], onChange: (e: { target: { value: string } }) => setForm({ ...form, [key]: e.target.value }) });
+  const [error, setError] = useState<Error | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
-    const { gstin, ...rest } = form;
-    const parsed = CreateOrgBody.safeParse({ ...rest, ...(gstin && { gstin }) });
-    if (!parsed.success) {
-      setProblems(Object.fromEntries(parsed.error.issues.map((i) => [String(i.path[0]), i.message])));
-      return;
+    const org = CreateOrgBody.safeParse({ name, type, city: address.city, state: address.state, ...(gstin && { gstin }) });
+    const property = CreatePropertyBody.safeParse({ name, type, amenities, address });
+    if (!org.success || !property.success) {
+      return setProblems(problemsOf([...(org.error?.issues ?? []), ...(property.error?.issues ?? [])]));
     }
     setProblems({});
-    save.mutate(parsed.data, {
-      onSuccess: async (org) => {
-        const me = await reload();
-        const membership = me?.memberships.find((m) => m.orgId === org._id);
-        if (membership) setWorkspace(membership);
-        onDone();
-      },
-    });
+    setError(null);
+    setBusy(true);
+    try {
+      const id = orgId ?? (await api.post<{ _id: string }>('/orgs', org.data))._id;
+      setOrgId(id);
+      await api.post(`/org/${id}/properties`, property.data);
+      const me = await reload();
+      const membership = me?.memberships.find((m) => m.orgId === id);
+      if (membership) setWorkspace(membership);
+      onDone();
+    } catch (err) {
+      setError(err as Error);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <Field label={t('Business name')} error={problems.name}><Input {...bind('name')} /></Field>
+      <Field label={t('PG name')} error={problems.name}><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
       <Field label={t('Type')}>
-        <Select {...bind('type')}>
+        <Select value={type} onChange={(e) => setType(e.target.value)}>
           <option value="boys">{t('Boys')}</option><option value="girls">{t('Girls')}</option><option value="coliving">{t('Co-living')}</option><option value="mixed">{t('Mixed')}</option>
         </Select>
       </Field>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field label={t('City')} error={problems.city}><Input {...bind('city')} /></Field>
-        <Field label={t('State')} error={problems.state}><Input {...bind('state')} /></Field>
-      </div>
-      <Field label={t('GSTIN (optional)')} error={problems.gstin}><Input {...bind('gstin')} /></Field>
-      <FormError error={save.error} />
-      <Button type="submit" block loading={save.isPending}>{t('Next')}</Button>
+      <LocationPicker value={address} onChange={setAddress} errors={problems} />
+      <AmenityPicker value={amenities} onChange={setAmenities} />
+      <Field label={t('GSTIN (optional)')} error={problems.gstin}><Input value={gstin} onChange={(e) => setGstin(e.target.value.toUpperCase())} /></Field>
+      <FormError error={error} />
+      <Button type="submit" block loading={busy}>{t('Next')}</Button>
     </form>
   );
 }
@@ -82,14 +92,13 @@ export default function OnboardingPage() {
   const next = () => setStep(step + 1);
   return (
     <main className="mx-auto max-w-[720px] p-4 md:p-8">
-      <img src="/roomora-logo.svg" alt="Roomora" className="mb-4 w-36" />
+      <img src="/roomora-logo.svg" alt="Roomora" className="mb-4 w-36 dark:rounded-md dark:bg-white dark:p-1" />
       <PageHeader title={t(STEPS[step])} subtitle={t('Step {{n}} of {{total}}', { n: step + 1, total: STEPS.length })} />
       <div className="mb-4 h-2 rounded-full bg-surface-muted"><div className="h-full rounded-full bg-primary" style={{ width: `${((step + 1) / STEPS.length) * 100}%` }} /></div>
       <Card>
-        {step === 0 && <BusinessStep onDone={next} />}
-        {step === 1 && <PropertyForm onDone={next} />}
-        {step === 2 && <KycStep onDone={next} />}
-        {step === 3 && (
+        {step === 0 && <PgStep onDone={next} />}
+        {step === 1 && <KycStep onDone={next} />}
+        {step === 2 && (
           <div className="py-6 text-center">
             <Clock className="mx-auto mb-2 size-12 text-warning-text" aria-hidden />
             <p className="mb-1 text-xl font-bold">{t('Sent for approval')}</p>
@@ -110,7 +119,7 @@ export function PendingApprovalPage() {
   const [checking, setChecking] = useState(false);
   return (
     <main className="mx-auto max-w-lg space-y-4 p-4 pt-12">
-      <img src="/roomora-logo.svg" alt="Roomora" className="w-36" />
+      <img src="/roomora-logo.svg" alt="Roomora" className="w-36 dark:rounded-md dark:bg-white dark:p-1" />
       <Query query={query}>
         {(org) => {
           const rejected = org.kyc?.status === 'rejected';

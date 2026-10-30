@@ -118,7 +118,7 @@ export default function BedmapPage() {
     <>
       <PageHeader title={t('Bed map')} subtitle={properties.data?.find((p) => p._id === propertyId)?.name} />
       {properties.data?.length === 0 ? (
-        <EmptyState title={t('No properties yet')} text={t('Add a property to see its beds here.')} action={<Link to="/app/properties/new"><Button>{t('Add property')}</Button></Link>} />
+        <EmptyState title={t('No PGs yet')} text={t('Add a PG to see its beds here.')} action={<Link to="/app/properties/new"><Button>{t('Add PG')}</Button></Link>} />
       ) : (
         <>
           <div className="mb-3 flex gap-2 overflow-x-auto pb-1">

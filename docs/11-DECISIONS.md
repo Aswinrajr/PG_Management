@@ -55,6 +55,9 @@ Resolves conflicts and gaps found while reviewing docs 00–10. Where this doc d
 | D35 | Owner approval | A new org starts as `pending`. The owner can enter business details, properties and documents, nothing else. Super Admin approval moves it to `trial` and starts the 14 days. Rejection keeps it pending with a reason, and the owner resubmits. This replaces ONB-4. |
 | D36 | Several PGs | One owner, one organization, many properties, switched from the top bar. Trial allows 5 properties and 100 beds. Further properties do not need fresh approval. |
 
+| D37 | Wording | Screens say PG, not business or property. In code the models stay `organization` and `property`. Signup collects the PG once: one step creates both the organization and its first property. |
+| D38 | Maps | Leaflet with OpenStreetMap tiles and Nominatim lookups, no API key. Their public servers are for light use, so production must move to a paid or self-hosted provider. Location is stored in `address.geo`. |
+
 ## Build order changes to doc 07
 
 - Plans model and seed: moved from 2.8–2.9 to 1.3.

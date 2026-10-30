@@ -184,7 +184,7 @@ export function AddResidentPage() {
         {step === 0 && (
           <div className="space-y-3">
             <div className="grid gap-3 sm:grid-cols-2">
-              <Field label={t('Property')}>
+              <Field label={t('PG')}>
                 <Select value={activeProperty} onChange={(e) => { setPropertyId(e.target.value); setBedId(''); }}>
                   {properties.data?.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}
                 </Select>

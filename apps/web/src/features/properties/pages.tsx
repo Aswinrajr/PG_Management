@@ -8,6 +8,7 @@ import { useGet, useSend } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { formatINR, paiseToRupees, rupeesToPaise } from '../../lib/format';
 import { useProperties } from '../../lib/property';
+import { EMPTY_ADDRESS, LocationPicker, type PgAddress } from './location';
 
 const AMENITIES = ['WiFi', 'AC', 'Food', 'Laundry', 'Parking', 'CCTV', 'Power backup', 'Housekeeping', 'Gym'];
 
@@ -16,11 +17,11 @@ export function PropertiesPage() {
   const query = useProperties();
   return (
     <>
-      <PageHeader title={t('Properties')} actions={<Link to="/app/properties/new"><Button>{t('Add property')}</Button></Link>} />
+      <PageHeader title={t('My PGs')} actions={<Link to="/app/properties/new"><Button>{t('Add PG')}</Button></Link>} />
       <Query query={query}>
         {(items) =>
           items.length === 0 ? (
-            <EmptyState title={t('No properties yet')} text={t('Add your first property to set up rooms and beds.')} action={<Link to="/app/properties/new"><Button>{t('Add property')}</Button></Link>} />
+            <EmptyState title={t('No PGs yet')} text={t('Add your first PG to set up rooms and beds.')} action={<Link to="/app/properties/new"><Button>{t('Add PG')}</Button></Link>} />
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {items.map((property) => {
@@ -44,69 +45,64 @@ export function PropertiesPage() {
   );
 }
 
-const blank = { name: '', line1: '', city: '', state: '', pincode: '', type: 'coliving', amenities: [] as string[] };
+export function AmenityPicker({ value, onChange }: { value: string[]; onChange: (next: string[]) => void }) {
+  const { t } = useTranslation();
+  return (
+    <fieldset>
+      <legend className="mb-1 text-xs font-medium text-text-muted">{t('Amenities')}</legend>
+      <div className="flex flex-wrap gap-2">
+        {AMENITIES.map((a) => {
+          const on = value.includes(a);
+          return (
+            <button
+              key={a}
+              type="button"
+              aria-pressed={on}
+              onClick={() => onChange(on ? value.filter((x) => x !== a) : [...value, a])}
+              className={`min-h-11 rounded-full border px-3 text-sm ${on ? 'border-primary bg-primary-soft text-primary' : 'border-border text-text-muted'}`}
+            >
+              {t(a)}
+            </button>
+          );
+        })}
+      </div>
+    </fieldset>
+  );
+}
+
+export const problemsOf = (issues: { path: PropertyKey[]; message: string }[]) => Object.fromEntries(issues.map((i) => [String(i.path.at(-1)), i.message]));
 
 export function PropertyForm({ onDone }: { onDone: (id: string) => void }) {
   const { t } = useTranslation();
   const { orgPath } = useAuth();
-  const [form, setForm] = useState(blank);
+  const [name, setName] = useState('');
+  const [type, setType] = useState('coliving');
+  const [amenities, setAmenities] = useState<string[]>([]);
+  const [address, setAddress] = useState(EMPTY_ADDRESS);
   const [problems, setProblems] = useState<Record<string, string>>({});
   const create = useSend('post', orgPath('/properties'));
-  const set = (key: keyof typeof blank) => (e: { target: { value: string } }) => setForm({ ...form, [key]: e.target.value });
 
   function submit(e: FormEvent) {
     e.preventDefault();
-    const body = {
-      name: form.name,
-      type: form.type,
-      amenities: form.amenities,
-      address: { line1: form.line1, city: form.city, state: form.state, pincode: form.pincode },
-    };
-    const parsed = CreatePropertyBody.safeParse(body); // same schema the API validates with
-    if (!parsed.success) {
-      setProblems(Object.fromEntries(parsed.error.issues.map((i) => [String(i.path.at(-1)), i.message])));
-      return;
-    }
+    const parsed = CreatePropertyBody.safeParse({ name, type, amenities, address }); // same schema the API validates with
+    if (!parsed.success) return setProblems(problemsOf(parsed.error.issues));
     setProblems({});
     create.mutate(parsed.data, { onSuccess: (property) => onDone(property._id) });
   }
 
   return (
     <form onSubmit={submit} className="space-y-3">
-      <Field label={t('Property name')} error={problems.name}><Input value={form.name} onChange={set('name')} /></Field>
-      <Field label={t('Address')} error={problems.line1}><Input value={form.line1} onChange={set('line1')} /></Field>
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Field label={t('City')} error={problems.city}><Input value={form.city} onChange={set('city')} /></Field>
-        <Field label={t('State')} error={problems.state}><Input value={form.state} onChange={set('state')} /></Field>
-        <Field label={t('Pincode')} error={problems.pincode}><Input inputMode="numeric" maxLength={6} value={form.pincode} onChange={set('pincode')} /></Field>
-      </div>
+      <Field label={t('PG name')} error={problems.name}><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
+      <LocationPicker value={address} onChange={setAddress} errors={problems} />
       <Field label={t('Type')}>
-        <Select value={form.type} onChange={set('type')}>
+        <Select value={type} onChange={(e) => setType(e.target.value)}>
           <option value="boys">{t('Boys')}</option>
           <option value="girls">{t('Girls')}</option>
           <option value="coliving">{t('Co-living')}</option>
           <option value="mixed">{t('Mixed')}</option>
         </Select>
       </Field>
-      <fieldset>
-        <legend className="mb-1 text-xs font-medium text-text-muted">{t('Amenities')}</legend>
-        <div className="flex flex-wrap gap-2">
-          {AMENITIES.map((a) => {
-            const on = form.amenities.includes(a);
-            return (
-              <button
-                key={a}
-                type="button"
-                aria-pressed={on}
-                onClick={() => setForm({ ...form, amenities: on ? form.amenities.filter((x) => x !== a) : [...form.amenities, a] })}
-                className={`min-h-11 rounded-full border px-3 text-sm ${on ? 'border-primary bg-primary-soft text-primary' : 'border-border text-text-muted'}`}
-              >
-                {t(a)}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
+      <AmenityPicker value={amenities} onChange={setAmenities} />
       <FormError error={create.error} />
       <Button type="submit" loading={create.isPending}>{t('Save')}</Button>
     </form>
@@ -118,7 +114,7 @@ export function NewPropertyPage() {
   const navigate = useNavigate();
   return (
     <>
-      <PageHeader title={t('Add property')} />
+      <PageHeader title={t('Add PG')} />
       <Card className="max-w-[720px]"><PropertyForm onDone={(id) => navigate(`/app/properties/${id}`)} /></Card>
     </>
   );
@@ -287,6 +283,22 @@ export function RentRulesForm({ propertyId, rules }: { propertyId: string; rules
   );
 }
 
+function LocationTab({ property }: { property: any }) {
+  const { t } = useTranslation();
+  const { orgPath } = useAuth();
+  const { line1 = '', city = '', state = '', pincode = '', geo } = property.address ?? {};
+  const [address, setAddress] = useState<PgAddress>({ line1, city, state, pincode, ...(geo?.lat != null && { geo: { lat: geo.lat, lng: geo.lng } }) });
+  const save = useSend('patch', orgPath(`/properties/${property._id}`));
+  return (
+    <div className="max-w-[720px] space-y-3">
+      <LocationPicker value={address} onChange={setAddress} />
+      <FormError error={save.error} />
+      {save.isSuccess && !save.isPending && <p className="text-success-text">{t('Saved.')}</p>}
+      <Button loading={save.isPending} onClick={() => save.mutate({ address })}>{t('Save')}</Button>
+    </div>
+  );
+}
+
 function SettingsTab({ property }: { property: any }) {
   const { t } = useTranslation();
   const { orgPath } = useAuth();
@@ -298,7 +310,7 @@ function SettingsTab({ property }: { property: any }) {
       <FormError error={save.error} />
       <div className="flex gap-2">
         <Button loading={save.isPending} onClick={() => save.mutate({ houseRules: rules })}>{t('Save')}</Button>
-        <Button variant="secondary" onClick={() => save.mutate({ isActive: !property.isActive })}>{property.isActive ? t('Disable property') : t('Enable property')}</Button>
+        <Button variant="secondary" onClick={() => save.mutate({ isActive: !property.isActive })}>{property.isActive ? t('Disable PG') : t('Enable PG')}</Button>
       </div>
     </div>
   );
@@ -308,7 +320,7 @@ export function PropertyDetailPage() {
   const { t } = useTranslation();
   const { id } = useParams();
   const { orgPath } = useAuth();
-  const [tab, setTab] = useState<'overview' | 'rooms' | 'rules' | 'invite' | 'settings'>('overview');
+  const [tab, setTab] = useState<'overview' | 'location' | 'rooms' | 'rules' | 'invite' | 'settings'>('overview');
   const query = useGet<any>(orgPath(`/properties/${id}`));
   const inviteUrl = `${location.origin}/join/${id}`;
   return (
@@ -321,6 +333,7 @@ export function PropertyDetailPage() {
             onChange={setTab}
             tabs={[
               { value: 'overview', label: t('Overview') },
+              { value: 'location', label: t('Location') },
               { value: 'rooms', label: t('Rooms') },
               { value: 'rules', label: t('Rent rules') },
               { value: 'invite', label: t('Invite link') },
@@ -334,6 +347,7 @@ export function PropertyDetailPage() {
               <Link to="/app/bedmap" className="mt-4 inline-block text-primary">{t('Open bed map')}</Link>
             </Card>
           )}
+          {tab === 'location' && <Card><LocationTab property={property} /></Card>}
           {tab === 'rooms' && <Card><CardTitle>{t('Add rooms')}</CardTitle><RoomsGrid propertyId={property._id} /></Card>}
           {tab === 'rules' && <Card><RentRulesForm propertyId={property._id} rules={property.rentRules} /></Card>}
           {tab === 'invite' && (

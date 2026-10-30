@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router';
 import { Button, Card, CardTitle, DataList, EmptyState, Field, FormError, Input, Money, PageHeader, Pagination, Query, Select, Sheet, StatCard, StatusBadge, Textarea } from '../../components/ui';
 import { api, useGet, useGetPage, useSend } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
+import { mapLink } from '../properties/location';
 import { displayPhone, formatDate, formatINR, rupeesToPaise } from '../../lib/format';
 
 export function AdminDashboardPage() {
@@ -18,7 +19,7 @@ export function AdminDashboardPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
               <StatCard icon={Building2} label={t('Organizations')} value={d.orgs.total} hint={t('{{active}} active · {{trial}} trial · {{pending}} waiting', { active: d.orgs.active, trial: d.orgs.trial, pending: d.orgs.pending })} to="/admin/organizations" />
-              <StatCard icon={BedDouble} label={t('Properties / beds')} value={`${d.properties} / ${d.beds}`} />
+              <StatCard icon={BedDouble} label={t('PGs / beds')} value={`${d.properties} / ${d.beds}`} />
               <StatCard icon={Percent} label={t('Occupancy')} value={`${d.occupancyPct}%`} />
               <StatCard icon={IndianRupee} label={t('Rent GMV')} value={formatINR(d.rentGmvPaise)} />
               <StatCard icon={CircleDollarSign} label={t('MRR')} value={formatINR(d.mrrPaise)} />
@@ -147,7 +148,7 @@ export function OrganizationDetailPage() {
               <Card>
                 <CardTitle action={<StatusBadge kind="org" status={org.status} />}>{t('Usage against plan')}</CardTitle>
                 <dl className="grid grid-cols-2 gap-1">
-                  <dt>{t('Properties')}</dt><dd className="tabular text-right">{usage.properties} / {plan?.limits?.properties}</dd>
+                  <dt>{t('PGs')}</dt><dd className="tabular text-right">{usage.properties} / {plan?.limits?.properties}</dd>
                   <dt>{t('Beds')}</dt><dd className="tabular text-right">{usage.beds} / {plan?.limits?.beds}</dd>
                 </dl>
               </Card>
@@ -168,7 +169,7 @@ export function OrganizationDetailPage() {
                 <ul className="space-y-2">{users.map((u: any) => <li key={u._id} className="flex justify-between gap-2"><span>{u.user?.name || displayPhone(u.user?.phone)}</span><span className="capitalize text-text-muted">{t(u.role)}</span></li>)}</ul>
               </Card>
               <Card>
-                <CardTitle>{t('Properties')}</CardTitle>
+                <CardTitle>{t('PGs')}</CardTitle>
                 <ul className="space-y-2">{properties.map((p: any) => <li key={p._id}>{p.name}</li>)}</ul>
               </Card>
             </div>
@@ -196,7 +197,10 @@ function KycReview({ org, onDone }: { org: any; onDone: () => void }) {
         <div><dt className="text-text-muted">{t('Location')}</dt><dd>{org.city}, {org.state}</dd></div>
         <div><dt className="text-text-muted">{t('Type')}</dt><dd className="capitalize">{t(org.type)}</dd></div>
         <div><dt className="text-text-muted">{t('GSTIN')}</dt><dd>{org.gstin || '—'}</dd></div>
-        <div className="sm:col-span-2"><dt className="text-text-muted">{t('Properties')}</dt><dd>{detail.data?.properties.map((p: any) => p.name).join(', ') || '—'}</dd></div>
+        <div className="sm:col-span-2"><dt className="text-text-muted">{t('PGs')}</dt><dd>{detail.data?.properties.map((p: any) => {
+          const link = mapLink(p.address?.geo);
+          return <span key={p._id} className="block">{p.name}{p.address?.line1 ? `, ${p.address.line1}` : ''} {link && <a href={link} target="_blank" rel="noreferrer" className="text-primary">{t('View on map')}</a>}</span>;
+        })}</dd></div>
       </dl>
       <div className="mb-3 flex flex-wrap gap-2">
         {org.kyc.docs.map((d: any) => <Button key={d.key} variant="secondary" onClick={() => void open(d.key)}>{t(d.type)}</Button>)}
@@ -253,7 +257,7 @@ export function PlansPage() {
             columns={[
               { header: t('Name'), cell: (p) => p.name },
               { header: t('Monthly'), align: 'right', cell: (p) => <Money paise={p.priceMonthlyPaise} /> },
-              { header: t('Properties'), cell: (p) => p.limits.properties },
+              { header: t('PGs'), cell: (p) => p.limits.properties },
               { header: t('Beds'), cell: (p) => p.limits.beds },
             ]}
             mobile={(p) => <div className="flex justify-between gap-2"><span>{p.name}</span><Money paise={p.priceMonthlyPaise} /></div>}

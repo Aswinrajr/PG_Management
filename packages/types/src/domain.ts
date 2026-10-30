@@ -45,6 +45,7 @@ export const CreatePropertyBody = z.object({
     city: z.string().trim().min(1),
     state: z.string().trim().min(1),
     pincode: z.string().regex(/^\d{6}$/, 'Enter a 6-digit pincode'),
+    geo: z.object({ lat: z.number().min(-90).max(90), lng: z.number().min(-180).max(180) }).optional(),
   }),
   type: z.enum(ORG_TYPES),
   amenities: z.array(z.string()).default([]),

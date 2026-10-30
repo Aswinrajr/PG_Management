@@ -52,8 +52,8 @@ export function PropertySwitcher() {
   const { data } = useProperties();
   const { propertyId, setPropertyId } = usePropertyFilter();
   return (
-    <Select aria-label={t('Property')} className="max-w-44 truncate" value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
-      <option value="">{t('All properties')}</option>
+    <Select aria-label={t('PG')} className="max-w-44 truncate" value={propertyId} onChange={(e) => setPropertyId(e.target.value)}>
+      <option value="">{t('All PGs')}</option>
       {data?.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}
     </Select>
   );

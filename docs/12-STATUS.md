@@ -40,4 +40,5 @@ Web push needs a real phone and HTTPS to confirm delivery. Needs real accounts: 
 - Most forms use the shared Zod schemas directly rather than React Hook Form.
 - Chat and alerts assume one API instance; two need the Socket.IO Redis adapter (D33).
 - Game cost is informational; money is not collected in the app.
+- Maps use the free public OpenStreetMap services, which are not meant for production traffic (D38).
 - Mongoose is on 8 as specified; 9 is available. Node 22 is in maintenance; plan a move to 24.

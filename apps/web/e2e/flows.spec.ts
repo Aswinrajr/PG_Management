@@ -46,7 +46,7 @@ test('owner: every page loads, then book, verify and take payment', async ({ pag
   for (const [path, shot] of pages) await visit(page, path, shot, info.project.name);
 
   await page.goto('/app/bedmap');
-  await page.getByLabel('Property', { exact: true }).selectOption({ label: 'Sunrise Indiranagar' }); // the seed fills the first property
+  await page.getByLabel('PG', { exact: true }).selectOption({ label: 'Sunrise Indiranagar' }); // the seed fills the first property
   await page.getByRole('button', { name: /^Vacant/ }).click();
   await page.getByRole('button', { name: /^Room .* bed .*: Vacant/ }).first().click();
   await page.getByRole('button', { name: 'Book this bed' }).click();
@@ -102,7 +102,11 @@ const upload = (page: Page, label: string) => page.getByLabel(label).setInputFil
 test('admin: console pages load and a new owner is approved', async ({ page, browser }, info) => {
   const problems = watchProblems(page);
 
-  const context = await browser.newContext();
+  const context = await browser.newContext({ geolocation: { latitude: 12.9716, longitude: 77.5946 }, permissions: ['geolocation'] });
+  await context.route('**/tile.openstreetmap.org/**', (route) => route.abort());
+  await context.route('**/nominatim.openstreetmap.org/reverse**', (route) =>
+    route.fulfill({ json: { address: { road: 'MG Road', suburb: 'Shanthala Nagar', city: 'Bengaluru', state: 'Karnataka', postcode: '560001' } } }),
+  );
   const owner = await context.newPage();
   const phone = `8${String(Date.now()).slice(-9)}`;
   const orgName = `Approval PG ${phone.slice(-5)}`;
@@ -113,16 +117,14 @@ test('admin: console pages load and a new owner is approved', async ({ page, bro
   await owner.getByRole('checkbox').check();
   await owner.getByLabel('6-digit code').fill('123456');
   await expect(owner).toHaveURL(/onboarding/);
-  await owner.getByLabel('Business name').fill(orgName);
-  await owner.getByLabel('City').fill('Bengaluru');
-  await owner.getByLabel('State').fill('Karnataka');
+  await owner.getByLabel('PG name').fill(orgName);
   await owner.getByRole('button', { name: 'Next' }).click();
-  await owner.getByLabel('Property name').fill('First House');
-  await owner.getByLabel('Address').fill('1 MG Road');
-  await owner.getByLabel('City').fill('Bengaluru');
-  await owner.getByLabel('State').fill('Karnataka');
-  await owner.getByLabel('Pincode').fill('560001');
-  await owner.getByRole('button', { name: 'Save' }).click();
+  await expect(owner.getByText('Enter a 6-digit pincode')).toBeVisible();
+  await owner.getByRole('button', { name: 'Use current location' }).click();
+  await expect(owner.getByLabel('City')).toHaveValue('Bengaluru');
+  await expect(owner.getByLabel('Address')).toHaveValue('MG Road, Shanthala Nagar');
+  await expect(owner.getByLabel('Pincode')).toHaveValue('560001');
+  await owner.getByRole('button', { name: 'Next' }).click();
   await upload(owner, 'Owner ID proof');
   await expect(owner.getByText('Uploaded')).toHaveCount(1);
   await upload(owner, 'Property proof');
@@ -140,7 +142,7 @@ test('admin: console pages load and a new owner is approved', async ({ page, bro
   }
   await page.goto('/admin/kyc');
   await page.getByRole('button', { name: orgName }).click();
-  await expect(page.getByText('First House')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'View on map' })).toBeVisible();
   await page.getByRole('button', { name: 'Approve' }).click();
   await expect(page.getByRole('button', { name: orgName })).toHaveCount(0);
 

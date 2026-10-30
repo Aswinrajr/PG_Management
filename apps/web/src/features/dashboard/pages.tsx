@@ -23,9 +23,9 @@ function Checklist() {
   const { orgPath } = useAuth();
   const query = useGet<{ steps: { key: string; done: boolean }[] }>(orgPath('/onboarding'));
   const LABELS: Record<string, [string, string]> = {
-    property: [t('Add a property'), '/app/properties'],
+    property: [t('Add your PG'), '/app/properties'],
     rooms: [t('Add rooms and beds'), '/app/properties'],
-    kyc: [t('Submit business KYC'), '/app/settings'],
+    kyc: [t('Submit PG documents'), '/app/settings'],
     payments: [t('Connect online payments'), '/app/settings'],
     resident: [t('Add your first resident'), '/app/residents/new'],
   };

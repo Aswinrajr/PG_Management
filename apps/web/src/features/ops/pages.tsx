@@ -30,7 +30,7 @@ function ExpenseSheet({ open, onClose }: { open: boolean; onClose: () => void })
   return (
     <Sheet open={open} onClose={onClose} title={t('Add expense')}>
       <form onSubmit={submit} className="space-y-3">
-        <Field label={t('Property')}><Select value={target} onChange={bind('propertyId').onChange}>{properties.data?.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}</Select></Field>
+        <Field label={t('PG')}><Select value={target} onChange={bind('propertyId').onChange}>{properties.data?.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}</Select></Field>
         <Field label={t('Category')}><Select {...bind('category')}>{EXPENSE_CATEGORIES.map((c) => <option key={c} value={c}>{t(c)}</option>)}</Select></Field>
         <Field label={t('Amount (₹)')}><Input inputMode="decimal" {...bind('amount')} /></Field>
         <Field label={t('Date')}><Input type="date" {...bind('date')} /></Field>
@@ -348,7 +348,7 @@ export function KycCard({ org }: { org: any }) {
   const status = org.kyc?.status;
   return (
     <Card>
-      <CardTitle action={<StatusBadge kind="kyc" status={status} />}>{t('Business KYC')}</CardTitle>
+      <CardTitle action={<StatusBadge kind="kyc" status={status} />}>{t('PG documents')}</CardTitle>
       {status === 'rejected' && <p className="mb-2 text-danger-text">{org.kyc.rejectionReason}</p>}
       {status !== 'approved' && status !== 'pending_review' && (
         <div className="space-y-3">

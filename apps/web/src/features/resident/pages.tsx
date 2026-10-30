@@ -7,6 +7,7 @@ import { ApiError } from '@roomora/api-client';
 import { api, useGet, useSend } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { formatDate, formatINR, formatPeriod, todayInput } from '../../lib/format';
+import { mapLink } from '../properties/location';
 
 const NO_STAY = 'You have no active stay';
 
@@ -54,7 +55,10 @@ export function HomePage() {
                 <CardTitle>{t('My room')}</CardTitle>
                 <p>{home.property?.name}</p>
                 <p className="text-text-muted">{t('Room {{room}}, bed {{bed}}', { room: home.room?.number, bed: home.bed?.label })}</p>
-                <Link to="/me/room" className="mt-2 inline-flex min-h-11 items-center font-medium text-primary">{t('View my room')}</Link>
+                <div className="mt-2 flex flex-wrap gap-4">
+                  <Link to="/me/room" className="inline-flex min-h-11 items-center font-medium text-primary">{t('View my room')}</Link>
+                  {mapLink(home.property?.address?.geo) && <a href={mapLink(home.property.address.geo)!} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center font-medium text-primary">{t('Directions')}</a>}
+                </div>
                 {home.property?.amenities?.length > 0 && (
                   <div className="mt-1 flex flex-wrap gap-1">{home.property.amenities.map((a: string) => <span key={a} className="rounded-full bg-surface-muted px-2 py-0.5 text-xs">{t(a)}</span>)}</div>
                 )}

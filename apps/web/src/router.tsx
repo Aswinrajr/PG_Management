@@ -44,7 +44,7 @@ const OWNER_NAV: NavItem[] = [
   { to: '/app/food-menu', label: 'Food menu', icon: UtensilsCrossed },
   { to: '/app/laundry', label: 'Laundry', icon: WashingMachine },
   { to: '/app/reports', label: 'Reports', icon: ClipboardList },
-  { to: '/app/properties', label: 'Properties', icon: Building2 },
+  { to: '/app/properties', label: 'My PGs', icon: Building2 },
   { to: '/app/settings', label: 'Settings', icon: Settings },
 ];
 

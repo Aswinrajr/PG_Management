@@ -98,7 +98,7 @@ export function LoginPage({ register = false }: { register?: boolean }) {
       <BrandPanel />
       <main className="flex flex-1 items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-4">
-          <img src="/roomora-logo.svg" alt="Roomora" className="mx-auto w-44 lg:hidden" />
+          <img src="/roomora-logo.svg" alt="Roomora" className="mx-auto w-44 lg:hidden dark:rounded-md dark:bg-white dark:p-1" />
           <div>
             <h2 className="text-2xl font-bold">{step !== 'phone' ? t('Enter OTP') : register ? t('Register your PG') : t('Log in')}</h2>
             <p className="text-text-muted">{step === 'phone' ? (register ? t('Start with your mobile number. Next you add your business details and documents for approval.') : t('We will send a 6-digit code to your phone.')) : t('Sent to +91 {{phone}}', { phone })}</p>
