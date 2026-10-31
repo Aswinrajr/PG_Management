@@ -18,14 +18,31 @@ export interface ClientOptions {
   baseUrl: string;
   fetch?: typeof fetch;
   onSessionExpired?: () => void;
+  /** Mobile only: secure storage for the refresh token. Web uses an httpOnly cookie. */
+  session?: { get: () => Promise<string | null>; set: (token: string | null) => Promise<void> };
 }
 
 /** Access token lives in memory only; the refresh token is an httpOnly cookie. */
-export function createClient({ baseUrl, fetch: doFetch = (...a) => fetch(...a), onSessionExpired }: ClientOptions) {
+export function createClient({ baseUrl, fetch: doFetch = (...a) => fetch(...a), onSessionExpired, session }: ClientOptions) {
   let accessToken: string | null = null;
   let refreshing: Promise<boolean> | null = null;
 
   async function callRefresh() {
+    if (session) {
+      const refreshToken = await session.get();
+      if (!refreshToken) return false;
+      const res = await doFetch(`${baseUrl}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-client': 'mobile' },
+        body: JSON.stringify({ refreshToken }),
+      });
+      if (res.status === 401) await session.set(null);
+      if (!res.ok) return false;
+      const { data } = await res.json();
+      await session.set(data.refreshToken);
+      accessToken = data.accessToken;
+      return true;
+    }
     const res = await doFetch(`${baseUrl}/auth/refresh`, { method: 'POST', credentials: 'include' });
     if (!res.ok) return false;
     accessToken = (await res.json()).data.accessToken;
@@ -44,6 +61,7 @@ export function createClient({ baseUrl, fetch: doFetch = (...a) => fetch(...a), 
     const headers = new Headers(init.headers);
     if (accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
     if (init.body && typeof init.body === 'string') headers.set('Content-Type', 'application/json');
+    if (session) headers.set('x-client', 'mobile');
     const res = await doFetch(`${baseUrl}${path}`, { ...init, headers, credentials: 'include' });
     if (res.status === 401 && retry && !path.startsWith('/auth/otp') && !path.startsWith('/auth/admin')) {
       if (await refresh()) return send(path, init, false);

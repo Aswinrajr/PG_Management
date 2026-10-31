@@ -1,13 +1,13 @@
 import type { Server as HttpServer } from 'node:http';
 import { Server } from 'socket.io';
-import { env } from '../config/env.js';
+import { corsOrigins } from '../config/env.js';
 import { verifyAccessToken } from '../modules/auth/tokens.js';
 import { Game } from '../modules/community/model.js';
 
 let io: Server | null = null;
 
 export function initRealtime(server: HttpServer) {
-  io = new Server(server, { cors: { origin: env.APP_URL, credentials: true } });
+  io = new Server(server, { cors: { origin: corsOrigins, credentials: true } });
 
   io.use(async (socket, next) => {
     try {

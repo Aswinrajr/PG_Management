@@ -37,6 +37,28 @@ describe('api client', () => {
     expect(onSessionExpired).toHaveBeenCalledOnce();
   });
 
+  it('rotates a stored refresh token on mobile', async () => {
+    let stored: string | null = 'old';
+    const fetchMock = vi.fn(async (_url: RequestInfo | URL, init?: RequestInit) => {
+      expect(JSON.parse(String(init?.body))).toEqual({ refreshToken: 'old' });
+      expect(new Headers(init?.headers).get('x-client')).toBe('mobile');
+      return json({ success: true, data: { accessToken: 'a', refreshToken: 'new' } });
+    });
+    const session = { get: async () => stored, set: async (t: string | null) => { stored = t; } };
+    const client = createClient({ baseUrl: '', fetch: fetchMock as typeof fetch, session });
+    expect(await client.refresh()).toBe(true);
+    expect(stored).toBe('new');
+    expect(client.getToken()).toBe('a');
+  });
+
+  it('forgets a rejected refresh token on mobile', async () => {
+    let stored: string | null = 'old';
+    const session = { get: async () => stored, set: async (t: string | null) => { stored = t; } };
+    const client = createClient({ baseUrl: '', fetch: async () => json({ success: false, error: {} }, 401), session });
+    expect(await client.refresh()).toBe(false);
+    expect(stored).toBeNull();
+  });
+
   it('does not try to refresh on a wrong OTP', async () => {
     const fetchMock = vi.fn(async () => json({ success: false, error: { message: 'Wrong OTP' } }, 401));
     const client = createClient({ baseUrl: '', fetch: fetchMock as unknown as typeof fetch });

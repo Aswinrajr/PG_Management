@@ -17,7 +17,7 @@ Web push needs a real phone and HTTPS to confirm delivery. Needs real accounts: 
 
 | Item | Ref |
 | --- | --- |
-| Mobile app | Doc 08 |
+| Mobile app features still to add: online payment, push, camera uploads, room view, booking and check-out, refunds. Foundation, resident and owner tabs exist in apps/mobile | Doc 08 |
 | 3D planner | Doc 09 |
 | WhatsApp and email sending; reminders are in-app only | BILL-5 |
 | Property invite link and QR requests; the tab is a placeholder | RES-2 |

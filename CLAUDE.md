@@ -42,7 +42,7 @@ Full specs live in `/docs`. Before starting any task, open the doc(s) it referen
 ```
 apps/api        Express API + BullMQ workers
 apps/web        React web app (routes: /admin/*, /app/*, /me/*)
-apps/mobile     Expo app (phase 2)
+apps/mobile     Expo app
 packages/types  Shared Zod schemas + TS types (single source of truth for API contracts)
 packages/api-client  Typed fetch client + TanStack Query hooks
 packages/ui-tokens   Design tokens (colors, spacing, radius, type) used by web + mobile

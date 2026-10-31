@@ -31,3 +31,6 @@ export const envSchema = z
 export type Env = z.infer<typeof envSchema>;
 
 export const env: Env = envSchema.parse(process.env);
+
+/** The Expo browser preview runs on 8081. Native apps do not use CORS. */
+export const corsOrigins = env.NODE_ENV === 'production' ? [env.APP_URL] : [env.APP_URL, 'http://localhost:8081'];
