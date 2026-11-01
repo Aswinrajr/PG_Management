@@ -276,6 +276,18 @@ describe('super admin', () => {
     await request(app).post('/api/v1/auth/admin/login').send({ email: 'nobody@roomora.in', password: 'whatever-long', totp: '000000' }).expect(401);
   });
 
+  it('keeps an admin session after a password login', async () => {
+    const secret = new Secret().base32;
+    const email = 'session@roomora.in';
+    await User.create({ phone: '919012345678', email, isSuperAdmin: true, passwordHash: await hashPassword('correct-horse'), totpSecretEnc: encrypt(secret) });
+    const totp = new TOTP({ secret: Secret.fromBase32(secret), digits: 6, period: 30 }).generate();
+    const web = await request(app).post('/api/v1/auth/admin/login').send({ email, password: 'correct-horse', totp }).expect(200);
+    expect(web.body.data.refreshToken).toBeUndefined();
+    await request(app).post('/api/v1/auth/refresh').set('Cookie', web.headers['set-cookie'] as unknown as string[]).expect(200);
+    const mobile = await request(app).post('/api/v1/auth/admin/login').set('x-client', 'mobile').send({ email, password: 'correct-horse', totp }).expect(200);
+    expect(mobile.body.data.refreshToken).toBeTruthy();
+  });
+
   it('blocks ordinary users', async () => {
     const user = await login();
     await api(user.token).get('/admin/dashboard').expect(403);

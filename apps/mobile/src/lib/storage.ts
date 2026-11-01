@@ -19,4 +19,5 @@ export const storage = {
 
 export const REFRESH_KEY = 'roomora.refresh';
 export const BIOMETRIC_KEY = 'roomora.biometric';
+export const BIOMETRIC_ASKED_KEY = 'roomora.biometric.asked';
 export const WORKSPACE_KEY = 'roomora.workspace';

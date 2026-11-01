@@ -3,7 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { Bell, ChevronRight, LogOut, Menu as MenuIcon, Moon, ShieldAlert, Sun, X, type LucideIcon } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, NavLink, Outlet, useNavigate } from 'react-router';
+import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { setLanguage } from '../i18n';
 import { useGet, useSend } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -195,6 +195,7 @@ function Brand() {
 export function AppShell({ nav, tabs, title, topbar }: { nav: NavItem[]; tabs: NavItem[]; title?: string; topbar?: ReactNode }) {
   const { t } = useTranslation();
   const [more, setMore] = useState(false);
+  const { pathname } = useLocation();
   useEffect(() => initTheme(), []);
   return (
     <div className="min-h-dvh bg-background">
@@ -217,7 +218,7 @@ export function AppShell({ nav, tabs, title, topbar }: { nav: NavItem[]; tabs: N
             </div>
           </header>
           <main className="mx-auto w-full max-w-[1440px] flex-1 p-4 pb-24 md:p-6 lg:p-8">
-            <Outlet />
+            <div key={pathname} className="page-enter"><Outlet /></div>
           </main>
         </div>
       </div>
@@ -242,7 +243,7 @@ export function AppShell({ nav, tabs, title, topbar }: { nav: NavItem[]; tabs: N
       </nav>
       <Dialog.Root open={more} onOpenChange={setMore}>
         <Dialog.Portal>
-          <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-950/50" />
+          <Dialog.Overlay className="sheet-overlay fixed inset-0 z-40 bg-slate-950/50" />
           <Dialog.Content aria-describedby={undefined} className="safe-bottom fixed inset-x-0 bottom-0 z-50 max-h-[85dvh] overflow-y-auto rounded-t-xl bg-surface p-4">
             <div className="mb-2 flex items-center justify-between">
               <Dialog.Title className="text-lg font-semibold">{t('More')}</Dialog.Title>

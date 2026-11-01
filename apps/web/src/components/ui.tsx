@@ -90,7 +90,17 @@ export const CardTitle = ({ children, action }: { children: ReactNode; action?: 
   </div>
 );
 
-export const Skeleton = ({ className }: { className?: string }) => <div aria-hidden className={cx('animate-pulse rounded-md bg-surface-muted', className)} />;
+export const Skeleton = ({ className }: { className?: string }) => <div aria-hidden className={cx('skeleton rounded-md', className)} />;
+
+/** Full-screen brand loader while the session is being restored. */
+export function AppLoader() {
+  return (
+    <div className="boot" aria-label="Loading Roomora">
+      <div className="boot-mark"><img src="/roomora-icon.svg" alt="" /></div>
+      <p>roomora</p>
+    </div>
+  );
+}
 
 export function ListSkeleton({ rows = 5 }: { rows?: number }) {
   return (
@@ -214,7 +224,7 @@ export function StatCard({ icon: Icon, label, value, hint, to }: { icon: LucideI
       {hint && <p className="mt-1 truncate text-xs text-text-muted">{hint}</p>}
     </>
   );
-  const shell = 'block min-w-0 rounded-md border border-border bg-surface p-4 shadow-card';
+  const shell = 'block min-w-0 rounded-md border border-border bg-surface p-4 shadow-card transition duration-150 hover:-translate-y-0.5 hover:shadow-overlay';
   return to ? <Link to={to} className={cx(shell, 'hover:border-primary')}>{body}</Link> : <div className={shell}>{body}</div>;
 }
 
@@ -224,10 +234,10 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   return (
     <Dialog.Root open={open} onOpenChange={(next) => !next && onClose()}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-slate-950/50" />
+        <Dialog.Overlay className="sheet-overlay fixed inset-0 z-40 bg-slate-950/50" />
         <Dialog.Content
           aria-describedby={undefined}
-          className="safe-bottom fixed inset-x-0 bottom-0 z-50 max-h-[90dvh] overflow-y-auto rounded-t-xl bg-surface p-4 shadow-overlay md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:w-[480px] md:rounded-none md:p-6"
+          className="sheet-panel safe-bottom fixed inset-x-0 bottom-0 z-50 max-h-[90dvh] overflow-y-auto rounded-t-xl bg-surface p-4 shadow-overlay md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:w-[480px] md:rounded-none md:p-6"
         >
           <div className="mb-4 flex items-center justify-between gap-2">
             <Dialog.Title className="text-lg font-semibold">{title}</Dialog.Title>

@@ -5,7 +5,7 @@ import {
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Link, Navigate, Outlet, useRouteError } from 'react-router';
 import { AppShell, type NavItem } from './components/AppShell';
-import { Button, ErrorState, ListSkeleton } from './components/ui';
+import { AppLoader, Button, ErrorState, ListSkeleton } from './components/ui';
 import { AdminLoginPage, InvitePage, LoginPage, SelectWorkspacePage } from './features/auth/pages';
 import { homeOf, useAuth } from './lib/auth';
 import { PropertyProvider, PropertySwitcher } from './lib/property';
@@ -80,7 +80,7 @@ function Lazy() {
 
 function OwnerLayout() {
   const { me: user, loading, workspace } = useAuth();
-  if (loading) return <ListSkeleton />;
+  if (loading) return <AppLoader />;
   if (!user) return <Navigate to="/login" replace />;
   if (!workspace) return <Navigate to="/onboarding" replace />;
   if (workspace.role === 'resident') return <Navigate to="/me" replace />;
@@ -94,7 +94,7 @@ function OwnerLayout() {
 
 function ResidentLayout() {
   const { me: user, loading, workspace } = useAuth();
-  if (loading) return <ListSkeleton />;
+  if (loading) return <AppLoader />;
   if (!user) return <Navigate to="/login" replace />;
   if (workspace && workspace.role !== 'resident') return <Navigate to={homeOf(workspace)} replace />;
   return <AppShell nav={RESIDENT_NAV} tabs={RESIDENT_NAV.slice(0, 4)} title={workspace?.orgName} />;
@@ -102,7 +102,7 @@ function ResidentLayout() {
 
 function AdminLayout() {
   const { me: user, loading } = useAuth();
-  if (loading) return <ListSkeleton />;
+  if (loading) return <AppLoader />;
   if (!user) return <Navigate to="/admin/login" replace />;
   if (!user.isSuperAdmin) return <Navigate to="/" replace />;
   return <AppShell nav={ADMIN_NAV} tabs={ADMIN_NAV.slice(0, 4)} title="Roomora Admin" />;
@@ -110,7 +110,7 @@ function AdminLayout() {
 
 function Root() {
   const { me: user, loading, workspace } = useAuth();
-  if (loading) return <ListSkeleton />;
+  if (loading) return <AppLoader />;
   if (!user) return <Navigate to="/login" replace />;
   return <Navigate to={user.isSuperAdmin ? '/admin' : homeOf(workspace)} replace />;
 }

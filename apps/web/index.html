@@ -7,9 +7,25 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&display=swap" rel="stylesheet" />
     <title>Roomora</title>
+    <style>
+      body { margin: 0; }
+      .boot { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: linear-gradient(135deg, #6366f1, #4f46e5 55%, #3730a3); color: #fff; font: 800 26px Poppins, Inter, system-ui, sans-serif; }
+      .boot p { margin: 0; }
+      .boot-mark { position: relative; width: 96px; height: 96px; animation: boot-in 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+      .boot-mark img { width: 100%; height: 100%; border-radius: 24px; }
+      .boot-mark::after { content: ''; position: absolute; inset: 0; border: 2px solid #fff; border-radius: 24px; animation: boot-ring 1.4s ease-out infinite; }
+      @keyframes boot-in { from { opacity: 0; transform: scale(0.6); } }
+      @keyframes boot-ring { from { opacity: 0.5; } to { opacity: 0; transform: scale(1.7); } }
+      @media (prefers-reduced-motion: reduce) { .boot-mark, .boot-mark::after { animation: none; } }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div class="boot" aria-label="Loading Roomora">
+        <div class="boot-mark"><img src="/roomora-icon.svg" alt="" /></div>
+        <p>roomora</p>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

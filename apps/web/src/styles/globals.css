@@ -33,6 +33,50 @@ body {
   background-image: repeating-linear-gradient(45deg, transparent 0 6px, color-mix(in srgb, var(--color-danger) 14%, transparent) 6px 12px);
 }
 
+.skeleton {
+  background: linear-gradient(100deg, var(--color-surface-muted) 30%, var(--color-border) 50%, var(--color-surface-muted) 70%);
+  background-size: 220% 100%;
+  animation: shimmer 1.3s linear infinite;
+}
+
+.page-enter {
+  animation: rise 0.28s ease-out both;
+}
+
+.sheet-overlay {
+  animation: fade 0.2s ease-out both;
+}
+
+.sheet-panel {
+  animation: rise 0.25s ease-out both;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 120% 0;
+  }
+  to {
+    background-position: -120% 0;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+}
+
+button:not(:disabled):active {
+  transform: scale(0.98);
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

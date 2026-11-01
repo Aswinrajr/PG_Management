@@ -32,7 +32,7 @@ export default function Beds() {
                         <T weight="600">{room.number}{room.isAc ? ' · AC' : ''}</T>
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
                           {room.beds.map((bed: any) => (
-                            <Pressable key={bed.id} accessibilityRole="button" accessibilityLabel={`Bed ${bed.label}, ${bed.status}`} style={{ width: 64, height: 64, borderRadius: 8, borderWidth: 2, borderColor: tone(c, bed.status), alignItems: 'center', justifyContent: 'center' }}>
+                            <Pressable key={bed.id} accessibilityRole="button" accessibilityLabel={`Bed ${bed.label}, ${bed.status}`} style={{ width: 68, height: 68, borderRadius: 14, borderWidth: 2, borderStyle: bed.status === 'vacant' ? 'dashed' : 'solid', borderColor: tone(c, bed.status), backgroundColor: `${tone(c, bed.status)}18`, alignItems: 'center', justifyContent: 'center' }}>
                               <T weight="700" color={tone(c, bed.status)}>{bed.label}</T>
                               <T size={10} muted>{bed.status}</T>
                             </Pressable>

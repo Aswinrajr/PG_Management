@@ -67,6 +67,8 @@ Resolves conflicts and gaps found while reviewing docs 00–10. Where this doc d
 
 | D43 | Mobile login | OTP first, then the refresh token is kept in the device secure store. Fingerprint or Face ID only unlocks the app on the device; no biometric data reaches Roomora. OTP is always the fallback. New owner registration and Super Admin stay on the website. |
 
+| D44 | Three roles on mobile | Super Admin is now in the app too (dashboard, KYC review, PG owners), replacing the web-only rule in D43. In production admins use email, password and TOTP there. Password login now keeps a session on web and mobile. |
+
 ## Build order changes to doc 07
 
 - Plans model and seed: moved from 2.8–2.9 to 1.3.

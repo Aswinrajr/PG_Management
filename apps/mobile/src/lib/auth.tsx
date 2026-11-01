@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { AppState } from 'react-native';
 import { api } from './api';
 import { closeSocket } from './socket';
-import { BIOMETRIC_KEY, REFRESH_KEY, storage, WORKSPACE_KEY } from './storage';
+import { BIOMETRIC_ASKED_KEY, BIOMETRIC_KEY, REFRESH_KEY, storage, WORKSPACE_KEY } from './storage';
 
 export interface Membership {
   orgId: string;
@@ -30,6 +30,8 @@ interface AuthValue {
   orgPath: (path: string) => string;
   biometricOn: boolean;
   biometricReady: boolean;
+  offerBiometric: boolean;
+  dismissBiometricOffer: () => Promise<void>;
   chooseWorkspace: (m: Membership) => Promise<void>;
   signIn: (accessToken: string, refreshToken: string) => Promise<void>;
   unlock: () => Promise<boolean>;
@@ -47,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [workspaceKey, setWorkspaceKey] = useState<string | null>(null);
   const [biometricOn, setBiometricOn] = useState(false);
   const [biometricReady, setBiometricReady] = useState(false);
+  const [offerBiometric, setOfferBiometric] = useState(false);
   const leftAt = useRef<number | null>(null);
 
   const load = useCallback(async () => {
@@ -108,6 +111,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       orgPath: (path) => `/org/${workspace?.orgId}${path}`,
       biometricOn,
       biometricReady,
+      offerBiometric,
+      dismissBiometricOffer: async () => {
+        await storage.set(BIOMETRIC_ASKED_KEY, 'yes');
+        setOfferBiometric(false);
+      },
       chooseWorkspace: async (m) => {
         await storage.set(WORKSPACE_KEY, keyOf(m));
         setWorkspaceKey(keyOf(m));
@@ -115,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signIn: async (accessToken, refreshToken) => {
         api.setToken(accessToken);
         await storage.set(REFRESH_KEY, refreshToken);
+        if (biometricReady && !biometricOn && !(await storage.get(BIOMETRIC_ASKED_KEY))) setOfferBiometric(true);
         await load();
       },
       unlock: async () => {
@@ -130,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       signOut,
     };
-  }, [status, me, workspaceKey, biometricOn, biometricReady, load, resume, signOut]);
+  }, [status, me, workspaceKey, biometricOn, biometricReady, offerBiometric, load, resume, signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

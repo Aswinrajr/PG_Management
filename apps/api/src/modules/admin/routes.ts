@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { AppError } from '../../lib/errors.js';
 import { pageMeta } from '../../lib/pagination.js';
 import { requireAuth } from '../../middleware/auth.js';
+import { setRefreshCookie } from '../auth/routes.js';
 import { rateLimit, validate } from '../../middleware/core.js';
 import { Broadcast, Notification, PlatformInvoice } from '../ops/model.js';
 import { AuditLog, Membership, Plan } from '../orgs/model.js';
@@ -31,8 +32,9 @@ const actorOf = (req: Request) => ({ userId: req.auth!.userId, ip: req.ip });
 export const adminLoginRoutes = Router();
 
 adminLoginRoutes.post('/admin/login', rateLimit('admin-login', 10, 900), validate({ body: AdminLoginBody }), async (req, res) => {
-  const { accessToken } = await service.adminLogin(req.valid.body, { ip: req.ip, userAgent: req.headers['user-agent'] });
-  res.json({ success: true, data: { accessToken } });
+  const { accessToken, refreshToken } = await service.adminLogin(req.valid.body, { ip: req.ip, userAgent: req.headers['user-agent'] });
+  setRefreshCookie(res, refreshToken);
+  res.json({ success: true, data: { accessToken, ...(req.headers['x-client'] === 'mobile' && { refreshToken }) } });
 });
 
 export const adminRoutes = Router();

@@ -1,5 +1,5 @@
 import { SendOtpBody, UpdateMeBody, VerifyOtpBody } from '@roomora/types';
-import { Router, type CookieOptions, type Request } from 'express';
+import { Router, type CookieOptions, type Request, type Response } from 'express';
 import { env } from '../../config/env.js';
 import { AppError } from '../../lib/errors.js';
 import { requireAuth } from '../../middleware/auth.js';
@@ -16,6 +16,8 @@ const cookieOptions: CookieOptions = {
   path: '/api/v1/auth',
   maxAge: env.JWT_REFRESH_TTL_DAYS * 86400_000,
 };
+
+export const setRefreshCookie = (res: Response, token: string) => res.cookie(COOKIE, token, cookieOptions);
 
 const clientOf = (req: Request) => ({ userAgent: req.headers['user-agent'], ip: req.ip });
 const refreshTokenOf = (req: Request): string | undefined => req.cookies?.[COOKIE] ?? req.body?.refreshToken;

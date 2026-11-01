@@ -17,7 +17,7 @@ export function AccountCard() {
       <Card>
         <View style={{ gap: 4 }}>
           <Row>
-            <T weight="600">Fingerprint or Face ID</T>
+            <T weight="700">Fingerprint login</T>
             <Switch
               accessibilityLabel="Unlock with fingerprint or Face ID"
               disabled={!biometricReady}
