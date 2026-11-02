@@ -2,6 +2,15 @@ node_modules
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*.jks
+*.keystore
+*.mobileprovision
+google-services.json
+GoogleService-Info.plist
 dist
 coverage
 .turbo
