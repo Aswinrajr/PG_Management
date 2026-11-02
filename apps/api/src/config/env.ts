@@ -15,6 +15,10 @@ export const envSchema = z
     JWT_REFRESH_TTL_DAYS: z.coerce.number().default(30),
     ENCRYPTION_KEY: z.string().refine((v) => Buffer.from(v, 'base64').length === 32, 'must be 32 bytes, base64'),
     OTP_DEV_MODE: flag,
+    /** Uploaded files. On Render, point this at the persistent disk. */
+    UPLOAD_DIR: z.string().default('uploads'),
+    /** Proxies in front of the API: 1 on Render, 2 when the web app proxies /api through Vercel. */
+    TRUST_PROXY: z.coerce.number().int().min(0).default(1),
     STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
     RAZORPAY_WEBHOOK_SECRET: z.string().optional(),
     RESEND_API_KEY: z.string().optional().transform((v) => v || undefined),

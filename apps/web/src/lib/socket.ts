@@ -2,12 +2,14 @@ import { io, type Socket } from 'socket.io-client';
 import { api } from './api';
 
 const API_URL: string = import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1';
+/** Vercel cannot proxy WebSockets, so in production the socket goes straight to the API host. */
+const SOCKET_URL: string = import.meta.env.VITE_SOCKET_URL ?? new URL(API_URL, window.location.href).origin;
 
 let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io(new URL(API_URL).origin, { auth: (cb) => cb({ token: api.getToken() }), autoConnect: false });
+    socket = io(SOCKET_URL, { auth: (cb) => cb({ token: api.getToken() }), autoConnect: false });
     // Access tokens last 15 minutes, so a reconnect may need a fresh one.
     socket.on('connect_error', async () => {
       if (await api.refresh()) setTimeout(() => socket?.connect(), 1000);

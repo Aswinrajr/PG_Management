@@ -349,7 +349,7 @@ function PaymentsCard({ org }: { org: any }) {
   const { orgPath } = useAuth();
   const [form, setForm] = useState({ keyId: '', keySecret: '', webhookSecret: '' });
   const save = useSend('put', orgPath('/razorpay'));
-  const webhook = `${import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1'}/webhooks/razorpay/${org._id}`;
+  const webhook = `${new URL(import.meta.env.VITE_API_URL ?? 'http://localhost:4000/api/v1', window.location.href).href}/webhooks/razorpay/${org._id}`;
   return (
     <Card>
       <CardTitle>{t('Online payments')}</CardTitle>

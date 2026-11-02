@@ -4,6 +4,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import sharp from 'sharp';
 import { z } from 'zod';
+import { env } from '../../config/env.js';
 import { randomToken } from '../../lib/crypto.js';
 import { AppError } from '../../lib/errors.js';
 import { requireAuth } from '../../middleware/auth.js';
@@ -13,7 +14,7 @@ import { ResidentProfile } from '../stays/model.js';
 
 const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_IMAGE_PX = 1600;
-const ROOT = resolve('uploads');
+const ROOT = resolve(env.UPLOAD_DIR);
 const UploadBody = z.object({ kind: z.enum(['kyc', 'photo', 'bill', 'ticket']), orgId: z.string().regex(/^[a-f\d]{24}$/i) });
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_BYTES, files: 1 } });

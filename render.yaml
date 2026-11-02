@@ -1,0 +1,83 @@
+# Render Blueprint: the API, the background worker and Redis.
+# MongoDB is not hosted on Render; use MongoDB Atlas. See docs/DEPLOY.md.
+envVarGroups:
+  - name: roomora-shared
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      - key: MONGODB_URI
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      # 32 random bytes, base64. Never change it after launch: it decrypts stored ID numbers and Razorpay keys.
+      - key: ENCRYPTION_KEY
+        sync: false
+      - key: OTP_DEV_MODE
+        value: "false"
+      - key: MSG91_AUTH_KEY
+        sync: false
+      - key: MSG91_TEMPLATE_ID_OTP
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+
+services:
+  - type: web
+    name: roomora-api
+    runtime: node
+    region: singapore
+    plan: starter
+    numInstances: 1 # Socket.IO keeps rooms in memory (D33)
+    buildCommand: corepack enable && NODE_ENV=development pnpm install --frozen-lockfile --filter api... && pnpm --filter api... build
+    startCommand: node apps/api/dist/server.js
+    healthCheckPath: /ready
+    disk:
+      name: uploads
+      mountPath: /var/data
+      sizeGB: 5
+    envVars:
+      - fromGroup: roomora-shared
+      - key: UPLOAD_DIR
+        value: /var/data/uploads
+      # Render's proxy plus Vercel's rewrite
+      - key: TRUST_PROXY
+        value: "2"
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: roomora-redis
+          property: connectionString
+
+  - type: worker
+    name: roomora-worker
+    runtime: node
+    region: singapore
+    plan: starter
+    buildCommand: corepack enable && NODE_ENV=development pnpm install --frozen-lockfile --filter api... && pnpm --filter api... build
+    startCommand: node apps/api/dist/worker.js
+    envVars:
+      - fromGroup: roomora-shared
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: roomora-redis
+          property: connectionString
+
+  - type: keyvalue
+    name: roomora-redis
+    region: singapore
+    plan: starter
+    maxmemoryPolicy: noeviction # BullMQ must not lose jobs
+    ipAllowList: [] # reachable only from services in this account

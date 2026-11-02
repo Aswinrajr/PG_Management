@@ -2,7 +2,7 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { type Express } from 'express';
 import helmet from 'helmet';
-import { corsOrigins } from './config/env.js';
+import { corsOrigins, env } from './config/env.js';
 import { dbReady } from './lib/db.js';
 import { kv } from './lib/kv.js';
 import { errorHandler, notFound, rateLimit, rejectUnsafeKeys, requestId } from './middleware/core.js';
@@ -19,7 +19,7 @@ import { fileRoutes, uploadRoutes } from './modules/uploads/routes.js';
 
 export function createApp(): Express {
   const app = express();
-  app.set('trust proxy', 1);
+  app.set('trust proxy', env.TRUST_PROXY);
   app.use(requestId, helmet(), cors({ origin: corsOrigins, credentials: true }));
   app.use('/api/v1/webhooks', webhookRoutes);
   app.use(express.json({ limit: '1mb' }), cookieParser(), rejectUnsafeKeys);
