@@ -2,7 +2,7 @@ import { BedDouble, CircleDollarSign, Clock, Plus, ReceiptIndianRupee, UserPlus,
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router';
 import { Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
-import { Button, Card, CardTitle, EmptyState, Money, PageHeader, Query, Skeleton, StatCard, StatusBadge } from '../../components/ui';
+import { Button, Card, CardTitle, EmptyState, Money, Query, Skeleton, StatCard, StatusBadge } from '../../components/ui';
 import { useGet, useSend } from '../../lib/api';
 import { useAuth } from '../../lib/auth';
 import { formatDate, formatINR, formatPeriod } from '../../lib/format';
@@ -49,6 +49,43 @@ function Checklist() {
   );
 }
 
+/** Gradient banner with a greeting and an occupancy ring that fills on load. */
+function Welcome({ occupancyPct, vacant }: { occupancyPct?: number; vacant?: number }) {
+  const { t } = useTranslation();
+  const { me, workspace } = useAuth();
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? t('Good morning') : hour < 17 ? t('Good afternoon') : t('Good evening');
+  const first = me?.user.name?.split(' ')[0];
+  const pct = occupancyPct ?? 0;
+  const r = 34;
+  const length = 2 * Math.PI * r;
+  return (
+    <section className="aurora relative mb-4 overflow-hidden rounded-2xl p-5 text-white shadow-overlay md:mb-6 md:p-7">
+      <div className="blob -right-10 -top-16 size-56 bg-teal-300/30" aria-hidden />
+      <div className="relative flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="text-sm text-white/75">{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+          <h1 className="mt-1 font-brand text-2xl font-bold tracking-tight md:text-3xl">{greeting}{first ? `, ${first}` : ''} 👋</h1>
+          <p className="mt-1 truncate text-white/80">
+            {workspace?.orgName}
+            {vacant !== undefined && <> · {vacant === 0 ? t('Fully occupied') : t('{{count}} beds free', { count: vacant })}</>}
+          </p>
+        </div>
+        <div className="relative hidden size-24 shrink-0 sm:block" role="img" aria-label={t('{{pct}}% occupied', { pct })}>
+          <svg viewBox="0 0 80 80" className="size-full -rotate-90">
+            <circle cx="40" cy="40" r={r} fill="none" stroke="rgb(255 255 255 / 0.2)" strokeWidth="8" />
+            <circle cx="40" cy="40" r={r} fill="none" stroke="#fff" strokeWidth="8" strokeLinecap="round" strokeDasharray={length} strokeDashoffset={length * (1 - pct / 100)} className="transition-[stroke-dashoffset] duration-1000 ease-out" />
+          </svg>
+          <span className="absolute inset-0 flex flex-col items-center justify-center leading-tight">
+            <span className="tabular text-xl font-bold">{pct}%</span>
+            <span className="text-[10px] uppercase tracking-wider text-white/75">{t('Occupied')}</span>
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default function DashboardPage() {
   const { t } = useTranslation();
   const { orgPath } = useAuth();
@@ -65,14 +102,14 @@ export default function DashboardPage() {
 
   return (
     <>
-      <PageHeader title={t('Dashboard')} />
+      <Welcome occupancyPct={query.data?.occupancyPct} vacant={query.data?.beds.vacant} />
       <Query
         query={query}
         skeleton={<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-28" />)}</div>}
       >
         {(data) => (
-          <div className="space-y-4 md:space-y-6">
-            <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
+          <div className="stagger space-y-4 md:space-y-6">
+            <div className="stagger grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
               <StatCard icon={BedDouble} label={t('Occupancy')} value={`${data.occupancyPct}%`} hint={t('{{used}} of {{total}} beds', { used: data.beds.occupied + data.beds.notice, total: data.beds.total })} to="/app/bedmap" />
               <StatCard icon={BedDouble} label={t('Vacant beds')} value={data.beds.vacant} to="/app/bedmap" />
               <StatCard icon={CircleDollarSign} label={t('Collected this month')} value={formatINR(data.month.collectedPaise)} hint={t('of {{amount}}', { amount: formatINR(data.month.expectedPaise) })} to="/app/billing/payments" />
@@ -89,8 +126,8 @@ export default function DashboardPage() {
                       <XAxis dataKey="month" tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} />
                       <YAxis width={56} tickFormatter={(v: number) => `₹${Math.round(v / 1000)}k`} tick={{ fontSize: 11, fill: 'var(--color-text-muted)' }} />
                       <Tooltip formatter={(v) => `₹${Number(v).toLocaleString('en-IN')}`} />
-                      <Bar isAnimationActive={false} dataKey="collected" name={t('Collected')} fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
-                      <Line isAnimationActive={false} dataKey="expected" name={t('Expected')} stroke="var(--color-secondary)" strokeWidth={2} dot={false} />
+                      <Bar animationDuration={700} dataKey="collected" name={t('Collected')} fill="var(--color-primary)" radius={[4, 4, 0, 0]} />
+                      <Line animationDuration={700} dataKey="expected" name={t('Expected')} stroke="var(--color-secondary)" strokeWidth={2} dot={false} />
                     </ComposedChart>
                   </ResponsiveContainer>
                 </div>
@@ -100,8 +137,8 @@ export default function DashboardPage() {
                   <CardTitle>{t('Quick actions')}</CardTitle>
                   <div className="grid grid-cols-2 gap-2">
                     {actions.map(({ to, label, icon: Icon }) => (
-                      <Link key={to} to={to} className="flex min-h-11 items-center gap-2 rounded-md border border-border p-2 text-sm font-medium hover:border-primary">
-                        <Icon className="size-4 shrink-0 text-primary" aria-hidden /> {label}
+                      <Link key={to} to={to} className="group flex min-h-11 items-center gap-2 rounded-lg border border-border p-2 text-sm font-medium transition hover:-translate-y-0.5 hover:border-primary hover:bg-primary-soft">
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary-soft text-primary transition group-hover:bg-primary group-hover:text-white"><Icon className="size-4" aria-hidden /></span> {label}
                       </Link>
                     ))}
                   </div>

@@ -93,11 +93,29 @@ export const CardTitle = ({ children, action }: { children: ReactNode; action?: 
 export const Skeleton = ({ className }: { className?: string }) => <div aria-hidden className={cx('skeleton rounded-md', className)} />;
 
 /** Full-screen brand loader while the session is being restored. */
+/** Same markup as the boot screen in index.html, so the hand-over is seamless. Styles live there. */
 export function AppLoader() {
   return (
-    <div className="boot" aria-label="Loading Roomora">
-      <div className="boot-mark"><img src="/roomora-icon.svg" alt="" /></div>
-      <p>roomora</p>
+    <div className="boot" role="status" aria-label="Loading Roomora">
+      <div className="boot-house">
+        <div className="boot-roof" />
+        <div className="boot-body">{[0, 1, 2, 3, 4, 5, 6].map((i) => <i key={i} />)}<b /><i /></div>
+      </div>
+      <p className="boot-name">room<span>ora</span></p>
+      <div className="boot-bar" />
+      <small>Getting your rooms ready…</small>
+    </div>
+  );
+}
+
+/** Shown while a page's code loads: a slim bar on top and the page outline below. */
+export function PageLoader() {
+  return (
+    <div role="status" aria-label="Loading" className="space-y-4">
+      <div className="fixed inset-x-0 top-0 z-50 h-0.5 overflow-hidden"><div className="h-full w-1/3 animate-[boot-slide_1s_ease-in-out_infinite] bg-primary" /></div>
+      <Skeleton className="h-8 w-48" />
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-28" />)}</div>
+      <Skeleton className="h-64 w-full" />
     </div>
   );
 }
@@ -217,14 +235,14 @@ export function StatCard({ icon: Icon, label, value, hint, to }: { icon: LucideI
   const body = (
     <>
       <div className="flex items-center gap-2 text-text-muted">
-        <Icon className="size-4" aria-hidden />
+        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary-soft text-primary transition-transform duration-200 group-hover:scale-110"><Icon className="size-4" aria-hidden /></span>
         <span className="truncate text-xs font-medium">{label}</span>
       </div>
       <p className="tabular mt-2 text-lg font-bold leading-7 sm:text-[22px] sm:leading-8 md:text-[28px] md:leading-9">{value}</p>
       {hint && <p className="mt-1 truncate text-xs text-text-muted">{hint}</p>}
     </>
   );
-  const shell = 'block min-w-0 rounded-md border border-border bg-surface p-4 shadow-card transition duration-150 hover:-translate-y-0.5 hover:shadow-overlay';
+  const shell = 'group block min-w-0 rounded-xl border border-border bg-surface p-4 shadow-card transition duration-200 hover:-translate-y-1 hover:shadow-overlay';
   return to ? <Link to={to} className={cx(shell, 'hover:border-primary')}>{body}</Link> : <div className={shell}>{body}</div>;
 }
 

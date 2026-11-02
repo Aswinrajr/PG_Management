@@ -9,21 +9,34 @@
     <title>Roomora</title>
     <style>
       body { margin: 0; }
-      .boot { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: linear-gradient(135deg, #6366f1, #4f46e5 55%, #3730a3); color: #fff; font: 800 26px Poppins, Inter, system-ui, sans-serif; }
-      .boot p { margin: 0; }
-      .boot-mark { position: relative; width: 96px; height: 96px; animation: boot-in 0.5s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
-      .boot-mark img { width: 100%; height: 100%; border-radius: 24px; }
-      .boot-mark::after { content: ''; position: absolute; inset: 0; border: 2px solid #fff; border-radius: 24px; animation: boot-ring 1.4s ease-out infinite; }
-      @keyframes boot-in { from { opacity: 0; transform: scale(0.6); } }
-      @keyframes boot-ring { from { opacity: 0.5; } to { opacity: 0; transform: scale(1.7); } }
-      @media (prefers-reduced-motion: reduce) { .boot-mark, .boot-mark::after { animation: none; } }
+      .boot { position: fixed; inset: 0; z-index: 100; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: #fff; font-family: Inter, system-ui, sans-serif;
+        background: radial-gradient(36rem 28rem at 15% 10%, rgba(129, 140, 248, 0.6), transparent 60%), radial-gradient(30rem 24rem at 90% 90%, rgba(20, 184, 166, 0.45), transparent 60%), linear-gradient(135deg, #4f46e5, #3730a3 60%, #1e1b4b); }
+      .boot-house { position: relative; width: 120px; height: 128px; margin-bottom: 10px; animation: boot-in 0.6s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+      .boot-house::after { content: ''; position: absolute; left: -14px; right: -14px; bottom: -12px; height: 10px; border-radius: 50%; background: rgba(15, 23, 42, 0.35); filter: blur(4px); }
+      .boot-roof { position: absolute; left: -8px; right: -8px; top: 0; height: 38px; background: #fff; clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+      .boot-body { position: absolute; left: 8px; right: 8px; top: 38px; bottom: 0; display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); gap: 7px; padding: 10px; border: 2px solid rgba(255, 255, 255, 0.9); border-top: 0; border-radius: 0 0 6px 6px; background: rgba(255, 255, 255, 0.14); }
+      .boot-body i { border-radius: 3px; background: rgba(255, 255, 255, 0.2); animation: boot-light 2.4s ease-in-out infinite; }
+      .boot-body i:nth-child(2) { animation-delay: 0.3s; } .boot-body i:nth-child(3) { animation-delay: 0.6s; } .boot-body i:nth-child(4) { animation-delay: 0.9s; }
+      .boot-body i:nth-child(5) { animation-delay: 1.2s; } .boot-body i:nth-child(6) { animation-delay: 1.5s; } .boot-body i:nth-child(7) { animation-delay: 1.8s; } .boot-body i:nth-child(9) { animation-delay: 2.1s; }
+      .boot-body b { border-radius: 8px 8px 0 0; margin-bottom: -10px; background: #fff; }
+      .boot-name { margin: 0; font: 700 28px Poppins, Inter, system-ui, sans-serif; letter-spacing: -0.02em; }
+      .boot-name span { color: #a5b4fc; }
+      .boot-bar { width: 168px; height: 4px; overflow: hidden; border-radius: 9999px; background: rgba(255, 255, 255, 0.2); }
+      .boot-bar::after { content: ''; display: block; width: 40%; height: 100%; border-radius: inherit; background: #fff; animation: boot-slide 1.2s ease-in-out infinite; }
+      .boot small { font-size: 13px; opacity: 0.8; }
+      @keyframes boot-in { from { opacity: 0; transform: translateY(16px) scale(0.8); } }
+      @keyframes boot-light { 0%, 100% { background: rgba(255, 255, 255, 0.2); box-shadow: none; } 35%, 65% { background: #fde68a; box-shadow: 0 0 14px #fbbf24; } }
+      @keyframes boot-slide { from { transform: translateX(-100%); } to { transform: translateX(260%); } }
+      @media (prefers-reduced-motion: reduce) { .boot-house, .boot-body i, .boot-bar::after { animation: none; } }
     </style>
   </head>
   <body>
     <div id="root">
-      <div class="boot" aria-label="Loading Roomora">
-        <div class="boot-mark"><img src="/roomora-icon.svg" alt="" /></div>
-        <p>roomora</p>
+      <div class="boot" role="status" aria-label="Loading Roomora">
+        <div class="boot-house"><div class="boot-roof"></div><div class="boot-body"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><b></b><i></i></div></div>
+        <p class="boot-name">room<span>ora</span></p>
+        <div class="boot-bar"></div>
+        <small>Getting your rooms ready…</small>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>

@@ -3,9 +3,10 @@ import {
   Radio, ReceiptIndianRupee, ScrollText, Settings, Trophy, Undo2, User, Users, UtensilsCrossed, Wallet, WalletCards, WashingMachine, Zap,
 } from 'lucide-react';
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Link, Navigate, Outlet, useRouteError } from 'react-router';
+import { createBrowserRouter, Navigate, Outlet, useRouteError } from 'react-router';
 import { AppShell, type NavItem } from './components/AppShell';
-import { AppLoader, Button, ErrorState, ListSkeleton } from './components/ui';
+import { CrashScreen, NotFound } from './components/NotFound';
+import { AppLoader, ListSkeleton, PageLoader } from './components/ui';
 import { AdminLoginPage, InvitePage, LoginPage, SelectWorkspacePage } from './features/auth/pages';
 import { homeOf, useAuth } from './lib/auth';
 import { PropertyProvider, PropertySwitcher } from './lib/property';
@@ -31,20 +32,20 @@ const rooms = () => import('./features/rooms/pages');
 const PendingApproval = named(() => import('./features/onboarding/pages'), 'PendingApprovalPage');
 
 const OWNER_NAV: NavItem[] = [
-  { to: '/app/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/app/dashboard', section: 'Overview', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/app/bedmap', label: 'Bed map', icon: BedDouble },
   { to: '/app/residents', label: 'Residents', icon: Users },
-  { to: '/app/billing/dues', label: 'Dues', icon: Wallet },
+  { to: '/app/billing/dues', section: 'Money', label: 'Dues', icon: Wallet },
   { to: '/app/billing/invoices', label: 'Invoices', icon: FileText },
   { to: '/app/billing/payments', label: 'Payments', icon: ReceiptIndianRupee },
   { to: '/app/billing/refunds', label: 'Refunds', icon: Undo2 },
   { to: '/app/billing/electricity', label: 'Electricity', icon: Zap },
   { to: '/app/expenses', label: 'Expenses', icon: WalletCards },
-  { to: '/app/complaints', label: 'Complaints', icon: MessageSquareWarning },
+  { to: '/app/complaints', section: 'Daily operations', label: 'Complaints', icon: MessageSquareWarning },
   { to: '/app/notices', label: 'Notices', icon: Megaphone },
   { to: '/app/food-menu', label: 'Food menu', icon: UtensilsCrossed },
   { to: '/app/laundry', label: 'Laundry', icon: WashingMachine },
-  { to: '/app/reports', label: 'Reports', icon: ClipboardList },
+  { to: '/app/reports', section: 'Business', label: 'Reports', icon: ClipboardList },
   { to: '/app/properties', label: 'My PGs', icon: Building2 },
   { to: '/app/settings', label: 'Settings', icon: Settings },
 ];
@@ -66,7 +67,7 @@ const RESIDENT_NAV: NavItem[] = [
 ];
 
 const ADMIN_NAV: NavItem[] = [
-  { to: '/admin', label: 'Dashboard', icon: Gauge, end: true },
+  { to: '/admin', section: 'Platform', label: 'Dashboard', icon: Gauge, end: true },
   { to: '/admin/organizations', label: 'Organizations', icon: Building2 },
   { to: '/admin/kyc', label: 'KYC queue', icon: FileCheck2 },
   { to: '/admin/plans', label: 'Plans', icon: WalletCards },
@@ -75,7 +76,7 @@ const ADMIN_NAV: NavItem[] = [
 ];
 
 function Lazy() {
-  return <Suspense fallback={<ListSkeleton />}><Outlet /></Suspense>;
+  return <Suspense fallback={<PageLoader />}><Outlet /></Suspense>;
 }
 
 function OwnerLayout() {
@@ -115,17 +116,9 @@ function Root() {
   return <Navigate to={user.isSuperAdmin ? '/admin' : homeOf(workspace)} replace />;
 }
 
-function NotFound() {
-  return (
-    <main className="p-8 text-center">
-      <h1 className="mb-3 text-2xl font-bold">Page not found</h1>
-      <Link to="/"><Button>Go home</Button></Link>
-    </main>
-  );
-}
-
 function RouteError() {
-  return <ErrorState error={useRouteError() as Error} onRetry={() => location.reload()} />;
+  const error = useRouteError() as (Error & { status?: number }) | undefined;
+  return error?.status === 404 ? <NotFound /> : <CrashScreen error={error} />;
 }
 
 const Dashboard = owner.dashboard;

@@ -25,7 +25,7 @@ async function visit(page: Page, path: string, shot: string, project: string) {
   await page.goto(path);
   await page.waitForLoadState('networkidle');
   await expect(page.getByRole('alert').filter({ hasText: /went wrong|Not found/ })).toHaveCount(0);
-  await expect(page.getByText('Page not found')).toHaveCount(0);
+  await expect(page.getByText('This room is vacant')).toHaveCount(0);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow, `${path} scrolls sideways by ${overflow}px`).toBeLessThanOrEqual(0);
   if (SHOTS) await page.screenshot({ path: `${SHOTS}/${project}-${shot}.png`, fullPage: false });

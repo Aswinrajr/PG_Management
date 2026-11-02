@@ -16,6 +16,8 @@ export interface NavItem {
   label: string;
   icon: LucideIcon;
   end?: boolean;
+  /** Heading shown above this item in the sidebar, starting a new group. */
+  section?: string;
 }
 
 const THEME_KEY = 'roomora.theme';
@@ -155,19 +157,50 @@ function UserControls() {
 }
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
-  cx('flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium', isActive ? 'bg-primary-soft text-primary' : 'text-text-muted hover:bg-surface-muted hover:text-text');
+  cx(
+    'group relative flex min-h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors duration-150',
+    isActive
+      ? 'bg-primary-soft text-primary before:absolute before:inset-y-2 before:-left-3 before:w-1 before:rounded-r-full before:bg-primary'
+      : 'text-text-muted hover:bg-surface-muted hover:text-text',
+  );
 
-function SideNav({ items, onNavigate }: { items: NavItem[]; onNavigate?: () => void }) {
+/** `rail` is the md icon-only sidebar: section names become thin dividers there. */
+function SideNav({ items, onNavigate, rail }: { items: NavItem[]; onNavigate?: () => void; rail?: boolean }) {
   const { t } = useTranslation();
   return (
-    <nav aria-label={t('Main')} className="space-y-1">
+    <nav aria-label={t('Main')} className="space-y-0.5">
       {items.map((item) => (
-        <NavLink key={item.to} to={item.to} end={item.end} className={linkClass} onClick={onNavigate}>
-          <item.icon className="size-5 shrink-0" aria-hidden />
-          <span className="truncate">{t(item.label)}</span>
-        </NavLink>
+        <div key={item.to}>
+          {item.section && (
+            <>
+              <p className={cx('px-3 pb-1.5 pt-4 text-[11px] font-semibold uppercase tracking-wider text-text-muted/80', rail && 'hidden lg:block')}>{t(item.section)}</p>
+              {rail && <hr className="mx-2 my-3 border-border lg:hidden" />}
+            </>
+          )}
+          <NavLink to={item.to} end={item.end} className={linkClass} onClick={onNavigate} title={t(item.label)}>
+            <item.icon className="size-[18px] shrink-0 transition-transform duration-150 group-hover:scale-110" aria-hidden />
+            <span className={cx('truncate', rail && 'md:hidden lg:inline')}>{t(item.label)}</span>
+          </NavLink>
+        </div>
       ))}
     </nav>
+  );
+}
+
+function UserCard() {
+  const { t } = useTranslation();
+  const { me, workspace } = useAuth();
+  const name = me?.user.name || me?.user.phone || '';
+  const initials = name.split(' ').map((p) => p[0]).join('').slice(0, 2).toUpperCase();
+  const role = me?.isSuperAdmin ? t('Platform admin') : workspace?.role === 'resident' ? t('Resident') : t('Owner');
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-border bg-surface-muted/50 p-2 md:justify-center lg:justify-start">
+      <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-linear-to-br from-primary to-secondary text-xs font-bold text-white">{initials || '?'}</span>
+      <span className="min-w-0 md:hidden lg:block">
+        <span className="block truncate text-sm font-semibold">{name}</span>
+        <span className="block truncate text-xs text-text-muted">{role}</span>
+      </span>
+    </div>
   );
 }
 
@@ -201,12 +234,15 @@ export function AppShell({ nav, tabs, title, topbar }: { nav: NavItem[]; tabs: N
     <div className="min-h-dvh bg-background">
       <ImpersonationBanner />
       <div className="flex">
-        <aside className="sticky top-0 hidden h-dvh w-[72px] shrink-0 flex-col gap-4 overflow-y-auto border-r border-border bg-surface p-3 md:flex lg:w-[248px]">
-          <div className="px-1"><Brand /></div>
-          <SideNav items={nav} />
+        <aside className="sticky top-0 hidden h-dvh w-[76px] shrink-0 flex-col border-r border-border bg-surface md:flex lg:w-[256px]">
+          <div className="flex min-h-14 items-center px-4 md:justify-center lg:justify-start"><Brand /></div>
+          <div className="nav-scroll flex-1 overflow-y-auto px-3 pb-4">
+            <SideNav items={nav} rail />
+          </div>
+          <div className="border-t border-border p-3"><UserCard /></div>
         </aside>
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 border-b border-border bg-surface px-4 md:px-6">
+          <header className="sticky top-0 z-30 flex min-h-14 items-center justify-between gap-2 border-b border-border bg-surface/80 px-4 backdrop-blur-lg md:px-6">
             <div className="flex min-w-0 items-center gap-2">
               <div className="md:hidden"><Brand /></div>
               <p className="hidden truncate font-semibold md:block">{title}</p>
@@ -222,21 +258,25 @@ export function AppShell({ nav, tabs, title, topbar }: { nav: NavItem[]; tabs: N
           </main>
         </div>
       </div>
-      <nav aria-label={t('Tabs')} className="safe-bottom fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-surface md:hidden">
+      <nav aria-label={t('Tabs')} className="safe-bottom fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-surface/85 px-1 backdrop-blur-lg md:hidden">
         {tabs.map((tab) => (
           <NavLink
             key={tab.to}
             to={tab.to}
             end={tab.end}
-            className={({ isActive }) => cx('flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium', isActive ? 'text-primary' : 'text-text-muted')}
+            className={({ isActive }) => cx('group flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium transition-colors', isActive ? 'text-primary' : 'text-text-muted')}
           >
-            <tab.icon className="size-5" aria-hidden />
-            {t(tab.label)}
+            {({ isActive }) => (
+              <>
+                <span className={cx('flex h-7 w-12 items-center justify-center rounded-full transition-all duration-200', isActive && 'bg-primary-soft')}><tab.icon className="size-5" aria-hidden /></span>
+                {t(tab.label)}
+              </>
+            )}
           </NavLink>
         ))}
         {nav.length > tabs.length && (
           <button type="button" onClick={() => setMore(true)} className="flex min-h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium text-text-muted">
-            <MenuIcon className="size-5" aria-hidden />
+            <span className="flex h-7 w-12 items-center justify-center"><MenuIcon className="size-5" aria-hidden /></span>
             {t('More')}
           </button>
         )}
