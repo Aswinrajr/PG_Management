@@ -24,11 +24,12 @@ const refreshTokenOf = (req: Request): string | undefined => req.cookies?.[COOKI
 
 export const authRoutes = Router();
 
-authRoutes.post('/otp/send', rateLimit('otp-ip', 20, 3600), validate({ body: SendOtpBody }), async (req, res) => {
+// Per-IP limits are loose: a PG's residents share one WiFi IP. Each phone has its own tight limits in sendOtp/verifyOtp.
+authRoutes.post('/otp/send', rateLimit('otp-ip', 300, 3600), validate({ body: SendOtpBody }), async (req, res) => {
   res.json({ success: true, data: await sendOtp(req.valid.body.phone) });
 });
 
-authRoutes.post('/otp/verify', rateLimit('otp-verify-ip', 30, 3600), validate({ body: VerifyOtpBody }), async (req, res) => {
+authRoutes.post('/otp/verify', rateLimit('otp-verify-ip', 600, 3600), validate({ body: VerifyOtpBody }), async (req, res) => {
   const { refreshToken, ...data } = await verifyOtp(req.valid.body, clientOf(req));
   res.cookie(COOKIE, refreshToken, cookieOptions);
   res.json({ success: true, data: { ...data, ...(req.headers['x-client'] === 'mobile' && { refreshToken }) } });
