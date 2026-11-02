@@ -58,14 +58,16 @@ function OwnerHero() {
     <>
       <div className="relative">
         <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/15 px-3 py-1 text-xs font-medium"><Sparkles className="size-3.5" aria-hidden /> {t('PG management, made simple')}</p>
-        <h1 className="max-w-md font-brand text-4xl font-bold leading-tight tracking-tight">{t('Every bed, every rupee, every resident. One place.')}</h1>
-        <p className="mt-3 max-w-md text-base text-white/80">{t('Run your PG without registers and spreadsheets. Rent, rooms, food and complaints, all on your phone.')}</p>
+        <h1 className="max-w-md font-brand text-3xl font-bold leading-tight tracking-tight xl:text-4xl">{t('Every bed, every rupee, every resident. One place.')}</h1>
+        <p className="mt-3 max-w-md text-base text-white/80 [@media(max-height:720px)]:hidden">{t('Run your PG without registers and spreadsheets. Rent, rooms, food and complaints, all on your phone.')}</p>
       </div>
-      <div className="relative mx-auto w-full max-w-md">
-        <PgBuilding className="float-slow mx-auto w-72" />
-        <HeroCard icon={CheckCircle2} title="₹8,500 received" text={t('Room 204 · rent paid via UPI')} tone="bg-emerald-400/90 text-emerald-950" className="float absolute -left-6 top-6" />
-        <HeroCard icon={BedDouble} title={t('92% occupied')} text={t('46 of 50 beds filled')} tone="bg-amber-300/90 text-amber-950" className="float-slow absolute -right-8 top-40" />
-        <HeroCard icon={Users} title={t('New resident')} text={t('Bed 3B · moves in today')} tone="bg-indigo-200 text-indigo-900" className="float absolute -left-2 bottom-4" />
+      <div className="relative flex min-h-0 flex-1 items-center justify-center">
+        <div className="relative aspect-[26/30] h-full max-h-80">
+          <PgBuilding className="float-slow size-full" />
+          <HeroCard icon={CheckCircle2} title="₹8,500 received" text={t('Room 204 · rent paid via UPI')} tone="bg-emerald-400/90 text-emerald-950" className="float absolute -left-32 top-[10%] whitespace-nowrap" />
+          <HeroCard icon={BedDouble} title={t('92% occupied')} text={t('46 of 50 beds filled')} tone="bg-amber-300/90 text-amber-950" className="float-slow absolute -right-36 top-[42%] whitespace-nowrap" />
+          <HeroCard icon={Users} title={t('New resident')} text={t('Bed 3B · moves in today')} tone="bg-indigo-200 text-indigo-900" className="float absolute -left-24 bottom-[6%] whitespace-nowrap [@media(max-height:720px)]:hidden" />
+        </div>
       </div>
       <ul className="relative flex flex-wrap gap-x-6 gap-y-2 text-sm text-white/85">
         {[t('Bed map'), t('Rent & receipts'), t('Food menu'), t('Complaints')].map((x) => <li key={x} className="flex items-center gap-1.5"><CheckCircle2 className="size-4 text-emerald-300" aria-hidden /> {x}</li>)}
@@ -80,13 +82,13 @@ function AdminHero() {
     <>
       <div className="relative">
         <p className="mb-3 inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium"><ShieldCheck className="size-3.5" aria-hidden /> {t('Restricted area')}</p>
-        <h1 className="max-w-md font-brand text-4xl font-bold leading-tight tracking-tight">{t('Roomora platform console')}</h1>
-        <p className="mt-3 max-w-md text-base text-white/70">{t('Approve PGs, review KYC, manage plans and send broadcasts. Every action is recorded in the audit log.')}</p>
+        <h1 className="max-w-md font-brand text-3xl font-bold leading-tight tracking-tight xl:text-4xl">{t('Roomora platform console')}</h1>
+        <p className="mt-3 max-w-md text-base text-white/70 [@media(max-height:720px)]:hidden">{t('Approve PGs, review KYC, manage plans and send broadcasts. Every action is recorded in the audit log.')}</p>
       </div>
-      <div className="relative mx-auto grid w-full max-w-sm place-items-center py-6">
-        <div className="float-slow grid size-48 place-items-center rounded-[2.5rem] bg-white/5 ring-1 ring-white/15">
-          <div className="grid size-32 place-items-center rounded-[2rem] bg-indigo-500/30 ring-1 ring-indigo-300/30">
-            <ShieldCheck className="size-16 text-indigo-200" aria-hidden />
+      <div className="relative mx-auto flex min-h-0 w-full max-w-sm flex-1 items-center justify-center">
+        <div className="float-slow grid aspect-square h-full max-h-48 place-items-center rounded-[2.5rem] bg-white/5 ring-1 ring-white/15">
+          <div className="grid size-2/3 place-items-center rounded-[2rem] bg-indigo-500/30 ring-1 ring-indigo-300/30">
+            <ShieldCheck className="size-1/2 text-indigo-200" aria-hidden />
           </div>
         </div>
         <HeroCard icon={Building2} title={t('KYC queue')} text={t('Review new PGs')} tone="bg-indigo-200 text-indigo-900" className="float absolute -left-4 top-2" />
@@ -100,14 +102,14 @@ function AdminHero() {
 /** Split screen: animated hero on the left from lg, the form on the right. On phones the hero shrinks to a gradient header. */
 function AuthLayout({ admin, children }: { admin?: boolean; children: ReactNode }) {
   return (
-    <div className="flex min-h-dvh bg-background">
-      <aside className={cx('relative hidden w-[52%] max-w-3xl flex-col justify-between gap-10 overflow-hidden p-12 text-white lg:flex', admin ? 'aurora-admin' : 'aurora')}>
+    <div className="flex min-h-dvh bg-background lg:h-dvh lg:overflow-hidden">
+      <aside className={cx('relative hidden h-dvh w-[52%] max-w-3xl flex-col gap-6 overflow-hidden p-10 text-white lg:flex xl:gap-8 xl:p-12', admin ? 'aurora-admin' : 'aurora')}>
         <div className="blob left-1/3 top-1/4 size-72 bg-indigo-400/30" aria-hidden />
         <div className="blob bottom-10 right-10 size-64 bg-teal-300/25" style={{ animationDelay: '-7s' }} aria-hidden />
         <div className="relative"><Wordmark /></div>
         {admin ? <AdminHero /> : <OwnerHero />}
       </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col lg:overflow-y-auto">
         <header className={cx('relative overflow-hidden px-5 pb-16 pt-6 text-white lg:hidden', admin ? 'aurora-admin' : 'aurora')}>
           <div className="blob -right-10 -top-10 size-40 bg-teal-300/30" aria-hidden />
           <div className="relative flex items-center justify-between">
@@ -115,7 +117,7 @@ function AuthLayout({ admin, children }: { admin?: boolean; children: ReactNode 
             {admin ? <ShieldCheck className="size-10 text-indigo-200" aria-hidden /> : <PgBuilding className="float-slow -mb-4 w-20" />}
           </div>
         </header>
-        <main className="-mt-10 flex flex-1 items-start justify-center px-4 pb-10 lg:mt-0 lg:items-center lg:px-10">
+        <main className="-mt-10 flex flex-1 items-start justify-center px-4 pb-10 lg:mt-0 lg:items-center lg:px-10 lg:py-8">
           <div className="page-enter relative w-full max-w-md rounded-2xl border border-border bg-surface p-6 shadow-overlay sm:p-8 lg:border-0 lg:bg-transparent lg:shadow-none">{children}</div>
         </main>
       </div>
